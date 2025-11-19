@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dokumentový editor</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+  }
+  header {
+    background: #333;
+    color: white;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  button, select, input[type="color"], input[type="number"] {
+    padding: 6px 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background: #fff;
+    color: #000;
+  }
+  button:hover { background: #eaeaea; }
+  label.small { color: #fff; font-size: 13px; margin-left:6px; }
+  #editor { margin: 10px; min-height: 500px; display: block; }
+  .page {
+    border: 1px solid #ccc;
+    background: white;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+    padding: 12px;
+    box-sizing: border-box;
+    width: 21cm;
+    height: 29.7cm;
+  }
+  .control-group { display:flex; gap:6px; align-items:center; }
+  .tiny { width: 90px; padding:6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <!-- Původní hlavička a ovládací prvky -->
+  <div class="control-group">
+    <button id="btnBold"><b>B</b></button>
+    <button id="btnItalic"><i>I</i></button>
+    <button id="btnUnderline"><u>U</u></button>
+  </div>
+
+  <select id="fontName">
+    <option value="Arial">Arial</option>
+    <option value="Times New Roman">Times New Roman</option>
+    <option value="Courier New">Courier New</option>
+    <option value="Verdana">Verdana</option>
+  </select>
+
+  <select id="fontSize">
+    <option value="1">8px</option>
+    <option value="2">10px</option>
+    <option value="3" selected>12px</option>
+    <option value="4">14px</option>
+    <option value="5">18px</option>
+    <option value="6">24px</option>
+    <option value="7">36px</option>
+  </select>
+
+  <input type="color" id="colorPicker" />
+
+  <div class="control-group">
+    <button id="left">Left</button>
+    <button id="center">Center</button>
+    <button id="right">Right</button>
+  </div>
+
+  <div class="control-group">
+    <button id="ul">• List</button>
+    <button id="ol">1. List</button>
+  </div>
+
+  <button id="toggleDir">LTR / RTL</button>
+
+  <button id="saveDoc">Export .DOC</button>
+
+  <label class="small">Šířka (cm):</label>
+  <input type="number" id="widthInput" class="tiny" min="1" step="0.1" value="21">
+  <button id="setWidth" class="tiny">Nastavit šířku</button>
+
+  <label class="small">Výška (cm):</label>
+  <input type="number" id="heightInput" class="tiny" min="1" step="0.1" value="29.7">
+  <button id="setHeight" class="tiny">Nastavit výšku</button>
+
+  <label class="small">Zleva (cm):</label>
+  <input type="number" id="indentLeft" class="tiny" min="0" step="0.1" value="0">
+  <button id="setIndentLeft" class="tiny">Nastavit</button>
+
+  <label class="small">Zprava (cm):</label>
+  <input type="number" id="indentRight" class="tiny" min="0" step="0.1" value="0">
+  <button id="setIndentRight" class="tiny">Nastavit</button>
+
+  <label class="small">Shora (cm):</label>
+  <input type="number" id="indentTop" class="tiny" min="0" step="0.1" value="0">
+  <button id="setIndentTop" class="tiny">Nastavit</button>
+
+  <label class="small">Zdola (cm):</label>
+  <input type="number" id="indentBottom" class="tiny" min="0" step="0.1" value="0">
+  <button id="setIndentBottom" class="tiny">Nastavit</button>
+
+  <span id="currentDim" class="small" style="margin-left:10px;"></span>
+</header>
+
+<div id="editor">
+  <div class="page" contenteditable="true"><div><br></div></div>
+</div>
+
+<script>
+const editor = document.getElementById('editor');
+
+// Základní formátování
+function exec(cmd, val = null) { document.execCommand(cmd, false, val); }
+
+document.getElementById('btnBold').addEventListener('click', ()=> exec('bold'));
+document.getElementById('btnItalic').addEventListener('click', ()=> exec('italic'));
+document.getElementById('btnUnderline').addEventListener('click', ()=> exec('underline'));
+
+document.getElementById('fontName').addEventListener('change', function(){ exec('fontName', this.value); });
+document.getElementById('fontSize').addEventListener('change', function(){ exec('fontSize', this.value); });
+document.getElementById('colorPicker').addEventListener('input', function(){ exec('foreColor', this.value); });
+
+document.getElementById('left').addEventListener('click', ()=> exec('justifyLeft'));
+document.getElementById('center').addEventListener('click', ()=> exec('justifyCenter'));
+document.getElementById('right').addEventListener('click', ()=> exec('justifyRight'));
+
+document.getElementById('ul').addEventListener('click', ()=> exec('insertUnorderedList'));
+document.getElementById('ol').addEventListener('click', ()=> exec('insertOrderedList'));
+
+// toggle direction
+document.getElementById('toggleDir').addEventListener('click', function(){
+  const activePage = document.activeElement.closest('.page');
+  if(activePage) activePage.dir = activePage.dir === 'ltr' ? 'rtl' : 'ltr';
+});
+
+document.getElementById('saveDoc').addEventListener('click', function(){
+  const widthCm = document.getElementById('widthInput').value;   // v cm
+  const heightCm = document.getElementById('heightInput').value; // v cm
+
+  // 1 cm = 28.3464567 pt
+  const cmToPt = cm => cm * 28.3464567;
+
+  const widthPt = cmToPt(widthCm);
+  const heightPt = cmToPt(heightCm);
+
+  const header =
+    "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+    "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+    "xmlns='http://www.w3.org/TR/REC-html40'>" +
+    "<head>" +
+    "<meta charset='utf-8'>" +
+    "<style>" +
+      "@page WordSection1 { size: " + widthPt + "pt " + heightPt + "pt; } " +
+      "div.WordSection1 { page: WordSection1; }" +
+    "</style>" +
+    "</head><body class='WordSection1'>";
+
+  const footer = "</body></html>";
+  const content = editor.innerHTML;
+
+  const blob = new Blob([header + content + footer], { type: 'application/msword' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'dokument.doc';
+  link.click();
+});
+
+
+// Nastavení rozměrů a odsazení
+function setEditorWidthCm(cm){ document.querySelectorAll('.page').forEach(p=>p.style.width=cm+'cm'); updateCurrentDim();}
+function setEditorHeightCm(cm){ document.querySelectorAll('.page').forEach(p=>p.style.height=cm+'cm'); updateCurrentDim();}
+function setIndentLeftCm(cm){ document.querySelectorAll('.page').forEach(p=>p.style.paddingLeft=parseFloat(cm)+'cm'); }
+function setIndentRightCm(cm){ document.querySelectorAll('.page').forEach(p=>p.style.paddingRight=parseFloat(cm)+'cm'); }
+function setIndentTopCm(cm){ document.querySelectorAll('.page').forEach(p=>p.style.paddingTop=parseFloat(cm)+'cm'); }
+function setIndentBottomCm(cm){ document.querySelectorAll('.page').forEach(p=>p.style.paddingBottom=parseFloat(cm)+'cm'); }
+
+document.getElementById('setWidth').addEventListener('click', ()=> setEditorWidthCm(document.getElementById('widthInput').value));
+document.getElementById('setHeight').addEventListener('click', ()=> setEditorHeightCm(document.getElementById('heightInput').value));
+document.getElementById('setIndentLeft').addEventListener('click', ()=> setIndentLeftCm(document.getElementById('indentLeft').value));
+document.getElementById('setIndentRight').addEventListener('click', ()=> setIndentRightCm(document.getElementById('indentRight').value));
+document.getElementById('setIndentTop').addEventListener('click', ()=> setIndentTopCm(document.getElementById('indentTop').value));
+document.getElementById('setIndentBottom').addEventListener('click', ()=> setIndentBottomCm(document.getElementById('indentBottom').value));
+
+function updateCurrentDim(){
+  const page = document.querySelector('.page');
+  const style = getComputedStyle(page);
+  const pxToCm = px => (px / 37.7952755906).toFixed(2);
+  document.getElementById('currentDim').textContent = `Aktuálně: ${pxToCm(parseFloat(style.width))} cm × ${pxToCm(parseFloat(style.height))} cm`;
+}
+updateCurrentDim();
+window.addEventListener('resize', updateCurrentDim);
+
+// Přidávání nové stránky při dosažení konce
+function addNewPage(){
+  const lastPage = editor.lastElementChild;
+  const newPage = lastPage.cloneNode(true);
+  newPage.innerHTML = "<div><br></div>";
+  editor.appendChild(newPage);
+  placeCaretAtEnd(newPage);
+}
+
+function placeCaretAtEnd(el){
+  el.focus();
+  if(typeof window.getSelection!="undefined" && typeof document.createRange!="undefined"){
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+
+// Sledování obsahu poslední stránky
+editor.addEventListener('input', ()=>{
+  const lastPage = editor.lastElementChild;
+  if(lastPage.scrollHeight > lastPage.clientHeight){
+    addNewPage();
+  }
+});
+
+
+
+document.getElementById('saveDoc').addEventListener('click', function() {
+    const pages = document.querySelectorAll('.page');
+    let content = '';
+    pages.forEach(p => {
+        const style = getComputedStyle(p);
+        // inline styly pro zachování formátu
+        const inlineStyle = `
+            width: ${style.width};
+            height: ${style.height};
+            padding-top: ${style.paddingTop};
+            padding-bottom: ${style.paddingBottom};
+            padding-left: ${style.paddingLeft};
+            padding-right: ${style.paddingRight};
+            font-family: ${style.fontFamily};
+            font-size: ${style.fontSize};
+            color: ${style.color};
+            text-align: ${style.textAlign};
+        `;
+        content += `<div style="${inlineStyle}">${p.innerHTML}</div><br>`;
+    });
+
+    const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+                   "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+                   "xmlns='http://www.w3.org/TR/REC-html40'>"+
+                   "<head><meta charset='utf-8'></head><body>";
+    const footer = "</body></html>";
+
+    const blob = new Blob([header + content + footer], { type: 'application/msword' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'dokument.doc';
+    link.click();
+});
+
+</script>
+</body>
+</html>

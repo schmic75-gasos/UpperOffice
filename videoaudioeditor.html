@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profesionální Video Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js" integrity="sha512-xT0S/xXvkrfkRXGBPlzZPCAncnMK5c1N7slRkToUbv8Z901aUEuKO84tLy8dWU+3ew4InFEN7TebPaVMy2npZw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        /* CSS zůstává stejné */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .editor-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .main-editor {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 600px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .preview-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            aspect-ratio: 16 / 9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #canvas, #videoPreview, #imagePreview {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .controls-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #444;
+            outline: none;
+            -webkit-appearance: none;
+            margin-bottom: 10px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .export-btn:hover {
+            box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .danger-btn {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .timeline-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        #timeline {
+            width: 100%;
+            height: 80px;
+            background: #222;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid #444;
+        }
+
+        .time-display {
+            text-align: center;
+            color: #00d4ff;
+            font-weight: 600;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .info-section {
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 3px solid #00d4ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .close-modal {
+            background: #333 !important;
+            padding: 8px 12px !important;
+            margin-top: 15px;
+        }
+
+        .export-options {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .export-option {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .export-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00d4ff;
+        }
+
+        .export-option.selected {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .format-name {
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 4px;
+        }
+
+        .format-desc {
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        @media (max-width: 1024px) {
+            .editor-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Profesionální Video Editor</h1>
+
+        <div class="editor-wrapper">
+            <div class="main-editor">
+                <!-- Preview -->
+                <div class="preview-container">
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    <video id="videoPreview" style="display: none;" crossorigin="anonymous"></video>
+                    <img id="imagePreview" style="display: none;" crossorigin="anonymous">
+                    <span id="placeholder" style="color: #666;">Nahraj video, audio nebo obrázek</span>
+                </div>
+
+                <!-- Timeline -->
+                <div class="timeline-container">
+                    <canvas id="timeline"></canvas>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                    </div>
+                </div>
+
+                <!-- Playback Controls -->
+                <div class="button-group">
+                    <button id="playBtn">▶ Přehrávka</button>
+                    <button id="pauseBtn">⏸ Pauza</button>
+                    <button id="stopBtn">⏹ Stop</button>
+                </div>
+            </div>
+
+            <!-- Sidebar Controls -->
+            <div class="sidebar">
+                <!-- File Upload -->
+                <div class="controls-section">
+                    <div class="control-label">📁 Soubor</div>
+                    <div class="button-group" style="flex-direction: column; gap: 8px;">
+                        <button id="uploadBtn">Nahraj soubor</button>
+                        <button id="saveProjectBtn">💾 Uložit projekt</button>
+                        <button id="loadProjectBtn">📂 Načíst projekt</button>
+                    </div>
+                    <input type="file" id="fileInput" accept="video/*,audio/*,image/*">
+                    <input type="file" id="projectInput" accept=".json">
+                </div>
+
+                <!-- Video Effects -->
+                <div class="controls-section">
+                    <div class="control-label">🎨 Video Efekty</div>
+                    <label class="control-label">Jas</label>
+                    <input type="range" id="brightness" min="0" max="200" value="100">
+                    <label class="control-label">Kontrast</label>
+                    <input type="range" id="contrast" min="0" max="200" value="100">
+                    <label class="control-label">Saturace</label>
+                    <input type="range" id="saturation" min="0" max="200" value="100">
+                    <label class="control-label">Průhlednost</label>
+                    <input type="range" id="opacity" min="0" max="100" value="100">
+                </div>
+
+                <!-- Transform -->
+                <div class="controls-section">
+                    <div class="control-label">🔄 Transformace</div>
+                    <label class="control-label">Rotace (°)</label>
+                    <input type="range" id="rotation" min="0" max="360" value="0">
+                    <label class="control-label">Měřítko (%)</label>
+                    <input type="range" id="scale" min="10" max="200" value="100">
+                </div>
+
+                <!-- Audio Controls -->
+                <div class="controls-section">
+                    <div class="control-label">🔊 Audio</div>
+                    <label class="control-label">Hlasitost</label>
+                    <input type="range" id="volume" min="0" max="100" value="100">
+                    <label class="control-label">Rychlost přehrávky</label>
+                    <input type="range" id="playbackSpeed" min="0.25" max="2" step="0.25" value="1">
+                </div>
+
+                <!-- Trim -->
+                <div class="controls-section">
+                    <div class="control-label">✂️ Střih</div>
+                    <label class="control-label">Začátek (s)</label>
+                    <input type="range" id="trimStart" min="0" max="100" value="0">
+                    <label class="control-label">Konec (s)</label>
+                    <input type="range" id="trimEnd" min="0" max="100" value="100">
+                    <button id="applyTrimBtn" style="font-size: 0.8em;">Použít střih</button>
+                </div>
+
+                <!-- Text Overlay -->
+                <div class="controls-section">
+                    <div class="control-label">📝 Text</div>
+                    <input type="text" id="textInput" placeholder="Text..." style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; border-radius: 4px; color: #fff; margin-bottom: 8px;">
+                    <input type="number" id="textTime" placeholder="Čas (s)" min="0" style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; border-radius: 4px; color: #fff; margin-bottom: 8px;">
+                    <button id="addTextBtn" style="font-size: 0.8em;">Přidat text</button>
+                </div>
+
+                <!-- Export -->
+                <div class="controls-section">
+                    <div class="control-label">💾 Export</div>
+                    <button id="exportBtn" class="export-btn">📥 Exportovat</button>
+                </div>
+
+                <div class="info-section">
+                    ℹ️ Vybrat video, audio nebo obrázek. Upravit efekty. Exportovat v MP4, MP3, WebM, PNG, AVI, WAV.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <h2>Vybrat formát exportu</h2>
+            <div class="export-options" id="exportOptions"></div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div id="progressText" style="text-align: center; margin-top: 10px; font-size: 0.9em;"></div>
+            <button id="startExportBtn" class="export-btn" style="margin-top: 15px;">Exportovat</button>
+            <button class="close-modal" onclick="document.getElementById('exportModal').classList.remove('active')">Zavřít</button>
+        </div>
+    </div>
+
+    <script>
+    // Editor State
+    const state = {
+        media: null,
+        mediaType: null,
+        isPlaying: false,
+        currentTime: 0,
+        duration: 0,
+        effects: {
+            brightness: 100,
+            contrast: 100,
+            saturation: 100,
+            opacity: 100,
+            rotation: 0,
+            scale: 100
+        },
+        audio: {
+            volume: 100,
+            playbackSpeed: 1
+        },
+        trim: {
+            start: 0,
+            end: 100
+        },
+        texts: [],
+        selectedExportFormat: 'mp4'
+    };
+
+    let animationFrameId;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const timelineCanvas = document.getElementById('timeline');
+    const timelineCtx = timelineCanvas.getContext('2d');
+    let mediaRecorder;
+    let recordedChunks = [];
+    let audioContext;
+    let audioSource;
+    let audioDestination;
+
+    // Initialize
+    function init() {
+        setupEventListeners();
+        setupExportModal();
+        resizeCanvases();
+        window.addEventListener('resize', resizeCanvases);
+    }
+
+    function resizeCanvases() {
+        const previewContainer = document.querySelector('.preview-container');
+        canvas.width = previewContainer.offsetWidth;
+        canvas.height = previewContainer.offsetHeight;
+        timelineCanvas.width = document.querySelector('.timeline-container').offsetWidth - 30;
+        timelineCanvas.height = 80;
+    }
+
+    // Event Listeners
+    function setupEventListeners() {
+        // File Upload
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        // Playback Controls
+        document.getElementById('playBtn').addEventListener('click', play);
+        document.getElementById('pauseBtn').addEventListener('click', pause);
+        document.getElementById('stopBtn').addEventListener('click', stop);
+
+        // Effects
+        document.getElementById('brightness').addEventListener('input', (e) => {
+            state.effects.brightness = e.target.value;
+            render();
+        });
+
+        document.getElementById('contrast').addEventListener('input', (e) => {
+            state.effects.contrast = e.target.value;
+            render();
+        });
+
+        document.getElementById('saturation').addEventListener('input', (e) => {
+            state.effects.saturation = e.target.value;
+            render();
+        });
+
+        document.getElementById('opacity').addEventListener('input', (e) => {
+            state.effects.opacity = e.target.value;
+            render();
+        });
+
+        document.getElementById('rotation').addEventListener('input', (e) => {
+            state.effects.rotation = e.target.value;
+            render();
+        });
+
+        document.getElementById('scale').addEventListener('input', (e) => {
+            state.effects.scale = e.target.value;
+            render();
+        });
+
+        // Audio
+        document.getElementById('volume').addEventListener('input', (e) => {
+            state.audio.volume = e.target.value;
+            if (state.media && state.mediaType === 'video') {
+                state.media.volume = e.target.value / 100;
+            }
+        });
+
+        document.getElementById('playbackSpeed').addEventListener('input', (e) => {
+            state.audio.playbackSpeed = parseFloat(e.target.value);
+            if (state.media) {
+                state.media.playbackRate = state.audio.playbackSpeed;
+            }
+        });
+
+        // Trim
+        document.getElementById('trimStart').addEventListener('input', (e) => {
+            state.trim.start = parseFloat(e.target.value);
+        });
+
+        document.getElementById('trimEnd').addEventListener('input', (e) => {
+            state.trim.end = parseFloat(e.target.value);
+        });
+
+        document.getElementById('applyTrimBtn').addEventListener('click', applyTrim);
+
+        // Text
+        document.getElementById('addTextBtn').addEventListener('click', addText);
+
+        // Export
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            document.getElementById('exportModal').classList.add('active');
+        });
+
+        document.getElementById('startExportBtn').addEventListener('click', startExport);
+
+        // Project Save/Load
+        document.getElementById('saveProjectBtn').addEventListener('click', saveProject);
+        document.getElementById('loadProjectBtn').addEventListener('click', () => {
+            document.getElementById('projectInput').click();
+        });
+
+        document.getElementById('projectInput').addEventListener('change', loadProject);
+
+        // Timeline Click
+        timelineCanvas.addEventListener('click', (e) => {
+            const rect = timelineCanvas.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            state.currentTime = percent * state.duration;
+            if (state.media) {
+                state.media.currentTime = state.currentTime;
+            }
+            render();
+        });
+    }
+
+    function handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+        
+        if (file.type.startsWith('video')) {
+            state.mediaType = 'video';
+            const video = document.getElementById('videoPreview');
+            video.src = url;
+            state.media = video;
+            
+            video.onloadedmetadata = () => {
+                state.duration = video.duration;
+                document.getElementById('trimEnd').max = Math.ceil(state.duration);
+                document.getElementById('trimEnd').value = Math.ceil(state.duration);
+                document.getElementById('textTime').max = Math.ceil(state.duration);
+                video.volume = state.audio.volume / 100;
+                video.playbackRate = state.audio.playbackSpeed;
+                render();
+            };
+
+            video.addEventListener('timeupdate', () => {
+                state.currentTime = video.currentTime;
+                updateTimeDisplay();
+            });
+        } else if (file.type.startsWith('audio')) {
+            state.mediaType = 'audio';
+            const audio = new Audio();
+            audio.src = url;
+            state.media = audio;
+
+            audio.onloadedmetadata = () => {
+                state.duration = audio.duration;
+                audio.volume = state.audio.volume / 100;
+                audio.playbackRate = state.audio.playbackSpeed;
+                renderAudioVisualizer();
+            };
+
+            audio.addEventListener('timeupdate', () => {
+                state.currentTime = audio.currentTime;
+                updateTimeDisplay();
+            });
+        } else if (file.type.startsWith('image')) {
+            state.mediaType = 'image';
+            const img = document.getElementById('imagePreview');
+            img.onload = () => {
+                state.duration = 5;
+                document.getElementById('trimEnd').max = 5;
+                document.getElementById('trimEnd').value = 5;
+                render();
+            };
+            img.src = url;
+            state.media = img;
+        }
+
+        document.getElementById('placeholder').style.display = 'none';
+        updateTimeDisplay();
+    }
+
+    function play() {
+        if (!state.media) return;
+        state.isPlaying = true;
+        
+        if (state.mediaType === 'video' || state.mediaType === 'audio') {
+            state.media.play();
+        }
+        
+        animate();
+    }
+
+    function pause() {
+        state.isPlaying = false;
+        if (state.media) {
+            if (state.mediaType === 'video' || state.mediaType === 'audio') {
+                state.media.pause();
+            }
+        }
+    }
+
+    function stop() {
+        state.isPlaying = false;
+        if (state.media) {
+            if (state.mediaType === 'video' || state.mediaType === 'audio') {
+                state.media.pause();
+                state.media.currentTime = 0;
+            }
+            state.currentTime = 0;
+        }
+        render();
+    }
+
+    function render() {
+        if (!state.media) return;
+
+        canvas.style.display = 'block';
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+
+        // Apply transformations
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((state.effects.rotation * Math.PI) / 180);
+        ctx.scale(state.effects.scale / 100, state.effects.scale / 100);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+        // Apply effects via filters
+        ctx.filter = `brightness(${state.effects.brightness}%) contrast(${state.effects.contrast}%) saturate(${state.effects.saturation}%) opacity(${state.effects.opacity}%)`;
+
+        // Draw media
+        if (state.mediaType === 'video') {
+            const aspectRatio = state.media.videoWidth ? state.media.videoWidth / state.media.videoHeight : 16 / 9;
+            const canvasAspect = canvas.width / canvas.height;
+
+            let drawWidth, drawHeight, x, y;
+
+            if (aspectRatio > canvasAspect) {
+                drawWidth = canvas.width;
+                drawHeight = canvas.width / aspectRatio;
+            } else {
+                drawHeight = canvas.height;
+                drawWidth = canvas.height * aspectRatio;
+            }
+
+            x = (canvas.width - drawWidth) / 2;
+            y = (canvas.height - drawHeight) / 2;
+
+            ctx.drawImage(state.media, x, y, drawWidth, drawHeight);
+        } else if (state.mediaType === 'audio') {
+            renderAudioVisualizer();
+        } else if (state.mediaType === 'image') {
+            const img = state.media;
+            const aspectRatio = img.width / img.height;
+            const canvasAspect = canvas.width / canvas.height;
+
+            let drawWidth, drawHeight, x, y;
+
+            if (aspectRatio > canvasAspect) {
+                drawWidth = canvas.width;
+                drawHeight = canvas.width / aspectRatio;
+            } else {
+                drawHeight = canvas.height;
+                drawWidth = canvas.height * aspectRatio;
+            }
+
+            x = (canvas.width - drawWidth) / 2;
+            y = (canvas.height - drawHeight) / 2;
+
+            ctx.drawImage(img, x, y, drawWidth, drawHeight);
+        }
+
+        ctx.restore();
+
+        // Draw text overlays
+        ctx.filter = 'none';
+        ctx.font = 'bold 32px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.lineWidth = 3;
+
+        state.texts.forEach(text => {
+            if (Math.abs(state.currentTime - text.time) < 0.1) {
+                ctx.strokeText(text.content, canvas.width / 2, canvas.height / 2 - 30);
+                ctx.fillText(text.content, canvas.width / 2, canvas.height / 2 - 30);
+            }
+        });
+
+        drawTimeline();
+        updateTimeDisplay();
+    }
+
+    function renderAudioVisualizer() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (state.media && state.media.src) {
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔊 Audio: ' + (state.media.src.split('/').pop() || 'Audio File'), canvas.width / 2, canvas.height / 2 - 40);
+            ctx.font = '16px Arial';
+            ctx.fillText('Čas: ' + formatTime(state.currentTime), canvas.width / 2, canvas.height / 2 + 20);
+        }
+
+        // Visualizer bars
+        ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+        const barCount = 30;
+        const barWidth = canvas.width / barCount;
+        for (let i = 0; i < barCount; i++) {
+            const height = Math.sin(Date.now() / 300 + i * 0.3) * 20 + 30;
+            ctx.fillRect(i * barWidth + 5, canvas.height / 2 + 50 - height / 2, barWidth - 10, height);
+        }
+    }
+
+    function drawTimeline() {
+        timelineCtx.clearRect(0, 0, timelineCanvas.width, timelineCanvas.height);
+        timelineCtx.fillStyle = '#222';
+        timelineCtx.fillRect(0, 0, timelineCanvas.width, timelineCanvas.height);
+
+        // Draw trim areas
+        const startPercent = state.trim.start / state.duration;
+        const endPercent = state.trim.end / state.duration;
+
+        timelineCtx.fillStyle = 'rgba(0, 212, 255, 0.2)';
+        timelineCtx.fillRect(
+            startPercent * timelineCanvas.width,
+            0,
+            (endPercent - startPercent) * timelineCanvas.width,
+            timelineCanvas.height
+        );
+
+        // Draw current position
+        const percent = state.duration > 0 ? state.currentTime / state.duration : 0;
+        timelineCtx.strokeStyle = '#00d4ff';
+        timelineCtx.lineWidth = 2;
+        timelineCtx.beginPath();
+        timelineCtx.moveTo(percent * timelineCanvas.width, 0);
+        timelineCtx.lineTo(percent * timelineCanvas.width, timelineCanvas.height);
+        timelineCtx.stroke();
+
+        // Draw text markers
+        timelineCtx.fillStyle = '#00d4ff';
+        timelineCtx.font = '10px Arial';
+        state.texts.forEach(text => {
+            const textPercent = state.duration > 0 ? text.time / state.duration : 0;
+            timelineCtx.fillRect(textPercent * timelineCanvas.width - 2, 0, 4, 8);
+        });
+    }
+
+    function updateTimeDisplay() {
+        document.getElementById('currentTime').textContent = formatTime(state.currentTime);
+        document.getElementById('duration').textContent = formatTime(state.duration);
+    }
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function animate() {
+        if (state.isPlaying) {
+            render();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+    }
+
+    function addText() {
+        const text = document.getElementById('textInput').value;
+        const time = parseFloat(document.getElementById('textTime').value);
+
+        if (text && time >= 0) {
+            state.texts.push({ content: text, time });
+            document.getElementById('textInput').value = '';
+            document.getElementById('textTime').value = '';
+            alert(`✅ Text přidán v čase ${time}s`);
+        }
+    }
+
+    function applyTrim() {
+        if (state.media) {
+            const start = state.trim.start;
+            const end = state.trim.end;
+            if (state.mediaType === 'video' || state.mediaType === 'audio') {
+                state.media.currentTime = start;
+            }
+            alert(`✅ Střih nastaven: ${formatTime(start)} - ${formatTime(end)}`);
+        }
+    }
+
+    function setupExportModal() {
+        const formats = [
+            { id: 'mp4', name: 'MP4 (H.264)', desc: 'Video + Audio, vysoká kvalita' },
+            { id: 'mp3', name: 'MP3 Audio', desc: 'Jen zvuk, MPEG-3 formát' },
+            { id: 'webm', name: 'WebM (VP8)', desc: 'Video + Audio, open-source' },
+            { id: 'avi', name: 'AVI Video', desc: 'Video + Audio, MPEG-4' },
+            { id: 'wav', name: 'WAV Audio', desc: 'Bezeztrátový zvuk' },
+            { id: 'png', name: 'PNG Snímek', desc: 'Aktuální frame jako obraz' }
+        ];
+
+        const container = document.getElementById('exportOptions');
+        container.innerHTML = '';
+
+        formats.forEach(format => {
+            const div = document.createElement('div');
+            div.className = 'export-option';
+            if (format.id === state.selectedExportFormat) {
+                div.classList.add('selected');
+            }
+            div.innerHTML = `
+                <div class="format-name">${format.name}</div>
+                <div class="format-desc">${format.desc}</div>
+            `;
+            div.addEventListener('click', () => {
+                document.querySelectorAll('.export-option').forEach(opt => opt.classList.remove('selected'));
+                div.classList.add('selected');
+                state.selectedExportFormat = format.id;
+            });
+            container.appendChild(div);
+        });
+    }
+
+    async function startExport() {
+        if (!state.media) {
+            alert('Nejdřív nahraj soubor!');
+            return;
+        }
+
+        const format = state.selectedExportFormat;
+        const progressBar = document.querySelector('.progress-bar');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progressText');
+
+        progressBar.style.display = 'block';
+
+        try {
+            if (format === 'png') {
+                exportPNG();
+            } else if (format === 'mp3') {
+                await exportMP3(progressFill, progressText);
+            } else if (format === 'mp4') {
+                await exportMP4(progressFill, progressText);
+            } else if (format === 'avi') {
+                await exportAVI(progressFill, progressText);
+            } else if (format === 'wav') {
+                await exportWAV(progressFill, progressText);
+            } else if (format === 'webm') {
+                await exportWebM(progressFill, progressText);
+            }
+        } catch (error) {
+            alert('Chyba při exportu: ' + error.message);
+            console.error(error);
+        }
+
+        progressBar.style.display = 'none';
+        document.getElementById('exportModal').classList.remove('active');
+    }
+
+    function exportPNG() {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `frame-${Date.now()}.png`;
+        link.click();
+    }
+
+    async function exportMP3(progressFill, progressText) {
+        if (state.mediaType !== 'audio' && state.mediaType !== 'video') {
+            alert('Pro MP3 je potřeba audio nebo video soubor!');
+            return;
+        }
+
+        progressText.textContent = 'Příprava MP3...';
+        progressFill.style.width = '25%';
+
+        // Record the audio with effects
+        const stream = await captureAudioStream();
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                chunks.push(e.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/mp3' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `audio-${Date.now()}.mp3`;
+            link.click();
+
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ MP3 Exportováno!';
+        };
+
+        mediaRecorder.start();
+        
+        // Record for the duration of the media
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, state.duration * 1000);
+    }
+
+    async function exportMP4(progressFill, progressText) {
+        if (state.mediaType !== 'video' && state.mediaType !== 'image') {
+            alert('Pro MP4 je potřeba video nebo obrázek!');
+            return;
+        }
+
+        progressText.textContent = 'Příprava MP4...';
+        progressFill.style.width = '20%';
+
+        const stream = await captureMediaStream();
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                chunks.push(e.data);
+                const progress = 20 + (chunks.length / 10) * 60;
+                progressFill.style.width = Math.min(progress, 80) + '%';
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/mp4' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `video-${Date.now()}.mp4`;
+            link.click();
+
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ MP4 Exportováno!';
+        };
+
+        mediaRecorder.start();
+        
+        // Record for the duration of the media
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, state.duration * 1000);
+    }
+
+    async function exportAVI(progressFill, progressText) {
+        if (state.mediaType !== 'video' && state.mediaType !== 'image') {
+            alert('Pro AVI je potřeba video nebo obrázek!');
+            return;
+        }
+
+        progressText.textContent = 'Příprava AVI...';
+        progressFill.style.width = '20%';
+
+        const stream = await captureMediaStream();
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/x-msvideo' });
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                chunks.push(e.data);
+                const progress = 20 + (chunks.length / 10) * 60;
+                progressFill.style.width = Math.min(progress, 80) + '%';
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/x-msvideo' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `video-${Date.now()}.avi`;
+            link.click();
+
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ AVI Exportováno!';
+        };
+
+        mediaRecorder.start();
+        
+        // Record for the duration of the media
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, state.duration * 1000);
+    }
+
+    async function exportWAV(progressFill, progressText) {
+        if (state.mediaType !== 'audio' && state.mediaType !== 'video') {
+            alert('Pro WAV je potřeba audio nebo video soubor!');
+            return;
+        }
+
+        progressText.textContent = 'Příprava WAV...';
+        progressFill.style.width = '30%';
+
+        const stream = await captureAudioStream();
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                chunks.push(e.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/wav' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `audio-${Date.now()}.wav`;
+            link.click();
+
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ WAV Exportováno!';
+        };
+
+        mediaRecorder.start();
+        
+        // Record for the duration of the media
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, state.duration * 1000);
+    }
+
+    async function exportWebM(progressFill, progressText) {
+        if (state.mediaType !== 'video' && state.mediaType !== 'image') {
+            alert('Pro WebM je potřeba video nebo obrázek!');
+            return;
+        }
+
+        progressText.textContent = 'Příprava WebM...';
+        progressFill.style.width = '20%';
+
+        const stream = await captureMediaStream();
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                chunks.push(e.data);
+                const progress = 20 + (chunks.length / 10) * 60;
+                progressFill.style.width = Math.min(progress, 80) + '%';
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `video-${Date.now()}.webm`;
+            link.click();
+
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ WebM Exportováno!';
+        };
+
+        mediaRecorder.start();
+        
+        // Record for the duration of the media
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, state.duration * 1000);
+    }
+
+    async function captureMediaStream() {
+        const canvasStream = canvas.captureStream(30);
+        
+        if (state.mediaType === 'video') {
+            // Add audio track from video
+            const audioStream = await captureAudioStream();
+            if (audioStream) {
+                const audioTracks = audioStream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    canvasStream.addTrack(audioTracks[0]);
+                }
+            }
+        }
+        
+        return canvasStream;
+    }
+
+    async function captureAudioStream() {
+        if (state.mediaType === 'audio' || state.mediaType === 'video') {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioSource = audioContext.createMediaElementSource(state.media);
+                audioDestination = audioContext.createMediaStreamDestination();
+                
+                // Apply audio effects
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = state.audio.volume / 100;
+                
+                audioSource.connect(gainNode);
+                gainNode.connect(audioDestination);
+                gainNode.connect(audioContext.destination);
+                
+                return audioDestination.stream;
+            } catch (error) {
+                console.error('Error capturing audio stream:', error);
+                return null;
+            }
+        }
+        return null;
+    }
+
+    // Project Save/Load
+    function saveProject() {
+        const project = {
+            effects: state.effects,
+            audio: state.audio,
+            trim: state.trim,
+            texts: state.texts
+        };
+
+        const dataStr = JSON.stringify(project, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `project-${Date.now()}.json`;
+        link.click();
+    }
+
+    function loadProject(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const project = JSON.parse(event.target.result);
+                state.effects = project.effects || state.effects;
+                state.audio = project.audio || state.audio;
+                state.trim = project.trim || state.trim;
+                state.texts = project.texts || state.texts;
+
+                // Update UI
+                document.getElementById('brightness').value = state.effects.brightness;
+                document.getElementById('contrast').value = state.effects.contrast;
+                document.getElementById('saturation').value = state.effects.saturation;
+                document.getElementById('opacity').value = state.effects.opacity;
+                document.getElementById('rotation').value = state.effects.rotation;
+                document.getElementById('scale').value = state.effects.scale;
+                document.getElementById('volume').value = state.audio.volume;
+                document.getElementById('playbackSpeed').value = state.audio.playbackSpeed;
+
+                alert('✅ Projekt načten!');
+                render();
+            } catch (error) {
+                alert('Chyba při načítání projektu!');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', init);
+</script>
+ 
+</body>
+</html>

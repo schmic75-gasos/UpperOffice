@@ -1,0 +1,247 @@
+:root {
+  --dark-bg: #333333;
+  --header-bg: #1f4060;
+  --text-light: #f2f2f2;
+  --accent-blue: #2a5a8c;
+  --hover-blue: #101e2c;
+  --text-editor: #a48d5f;
+  --doc-editor: #2a5a8c;
+  --table-editor: #0f440c;
+  --presentation-editor: #b81616;
+  --image-editor: #b0e0e6;
+  --media-editor: #6a5acd;
+  --3d-editor: #8a2be2;
+  --input-bg: #4a4a4a;
+  --input-border: #5a5a5a;
+  --input-focus: #2a5a8c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--text-light);
+  font-family: 'Montserrat', sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+header {
+  background-color: var(--header-bg);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.logo {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-light);
+  text-decoration: none;
+  transition: text-shadow 0.3s;
+}
+
+.logo:hover {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+}
+
+.navigation nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-item {
+  list-style: none;
+}
+
+.nav-link {
+  font-family: 'Roboto Mono', monospace;
+  color: var(--text-light);
+  text-decoration: none;
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  background-color: var(--hover-blue);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.login-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-link {
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.login-tooltip {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--hover-blue);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  width: 180px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.login-container:hover .login-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Login/Signup Styles */
+.lgnsgu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 120px);
+  padding: 2rem;
+}
+
+.box {
+  background-color: var(--header-bg);
+  border-radius: 12px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.box h2 {
+  font-family: 'Roboto Mono', monospace;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  color: var(--text-light);
+}
+
+.box input {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border: 2px solid var(--input-border);
+  border-radius: 8px;
+  background-color: var(--input-bg);
+  color: var(--text-light);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.box input:focus {
+  outline: none;
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(42, 90, 140, 0.3);
+}
+
+.box input::placeholder {
+  color: #aaa;
+}
+
+.box button {
+  width: 100%;
+  padding: 1rem;
+  background-color: var(--accent-blue);
+  color: var(--text-light);
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+}
+
+.box button:hover {
+  background-color: var(--hover-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.switch {
+  text-align: center;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.switch:hover {
+  color: var(--text-light);
+  text-decoration: underline;
+}
+
+/* Table layout for login page */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  
+  .logo {
+    margin-bottom: 1rem;
+    font-size: 2rem;
+  }
+  
+  .navigation nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .box {
+    padding: 2rem 1.5rem;
+    margin: 1rem;
+  }
+  
+  .lgnsgu {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-link {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .box {
+    padding: 1.5rem 1rem;
+  }
+  
+  .box h2 {
+    font-size: 1.5rem;
+  }
+}

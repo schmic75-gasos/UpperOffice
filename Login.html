@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="untiteld-1.CSS" type="text/css">
+    <meta charset="utf-8"> <!--KÓDOVÁNÍ UTF-8 - ČESKÁ DIAKRITIKA, SPECIÁLNÍ ZNAKY APOD. - NUTNOST-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--ZÁKLAD PRO RESPONZIVNÍ DESIGN-->
+    <title>Swarm Office - login - <!--NÁZEV STRÁNKY--></title>
+    <link rel="stylesheet" href="untiteld-1.CSS" type="text/css"> <!--PROPOJENÍ S NAŠÍM CSS SOUBOREM - JE DŮLEŽITÉ, ABY KAŽDÁ STRÁNKA MĚLA NÁZVY TAGŮ V SOUHLADU S OBECNÝMI CSS STYLY.-->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"> <!--PROPOJENÍ S GOOGLE FONTS - PÍSMO-->
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">SWARM OFFICE</a>
+        <div class="navigation">
+            <nav>
+                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
+                <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li>
+                <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li>
+                <li class="nav-item"><a href="Suportus.html" class="nav-link">Support Us</a></li>
+                <li class="nav-item login-container">
+                    <a href="Login.html" class="nav-link login-link">👨‍🚒</a>
+                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div>
+                </li>
+            </nav>
+        </div>
+    </header>
+
+ 
+        <table> <th style="width: 30%;"></th>
+        <th style="width: 40%;"><div class="lgnsgu">
+
+        <div class="box" id="loginBox">
+            <h2>Přihlášení</h2>
+            <input type="text" id="loginUser" placeholder="Uživatelské jméno">
+            <input type="password" id="loginPass" placeholder="Heslo">
+            <button onclick="loginUser()">Přihlásit</button>
+            <div class="switch" onclick="toggleForms()">Nemáš účet? Registruj se</div>
+        </div>
+        
+        <div class="box" id="signupBox" style="display:none;">
+            <h2>Registrace</h2>
+            <input type="text" id="signupUser" placeholder="Uživatelské jméno">
+            <input type="password" id="singupPass" placeholder="Heslo">
+            <button onclick="singup()">Registrovat</button>
+            <div class="switch" onclick="toggleForms()">Máš účet? Přihlas se</div>
+        </div>
+        
+        </div></th>
+        <th style="width: 30%;"></th></table>
+        
+        <script>
+            function toggleForms() {
+                document.getElementById("loginBox").style.display =
+                    document.getElementById("loginBox").style.display === "none" ? "block" : "none";
+        
+                document.getElementById("signupBox").style.display =
+                    document.getElementById("signupBox").style.display === "none" ? "block" : "none";
+            }
+        </script>
+        <script>
+            async function api(path, data = null) {
+    let opts = {
+        method: data ? "POST" : "GET",
+        headers: {}
+    };
+
+    if (data) {
+        opts.headers["Content-Type"] = "application/json";
+        opts.body = JSON.stringify(data);
+    }
+
+    if (localStorage.token) {
+        opts.headers["Authorization"] = localStorage.token;
+    }
+
+    let r = await fetch("/api/" + path, opts);
+    return r.json();
+}
+
+// ------- REGISTER -------
+async function singup() {
+    let username = document.getElementById("signupUser").value;
+    let password = document.getElementById("singupPass").value;
+
+    let res = await api("register", { username, password });
+    console.log(res);
+    alert(JSON.stringify(res));
+}
+
+// ------- LOGIN -------
+async function loginUser() {
+    let username = document.getElementById("loginUser").value;
+    let password = document.getElementById("loginPass").value;
+
+    let res = await api("login", { username, password });
+
+    if (res.token) {
+        localStorage.token = res.token;
+        alert("Přihlášeno.");
+    } else {
+        alert("Chyba: " + res.error);
+    }
+}
+
+// ------- PROFILE -------
+async function showProfile() {
+    let res = await api("profile");
+    alert(JSON.stringify(res));
+}
+
+        </script>
+        
+        </body>
+        </html>
+         
+

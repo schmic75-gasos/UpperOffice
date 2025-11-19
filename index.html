@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Office</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #333333;
+            --header-bg: #1f4060;
+            --text-light: #f2f2f2;
+            --accent-blue: #2a5a8c;
+            --hover-blue: #101e2c;
+            --text-editor: #a48d5f;
+            --doc-editor: #2a5a8c;
+            --table-editor: #0f440c;
+            --presentation-editor: #b81616;
+            --image-editor: #b0e0e6;
+            --media-editor: #6a5acd;
+            --3d-editor: #8a2be2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-decoration: none;
+            transition: text-shadow 0.3s;
+        }
+
+        .logo:hover {
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+        }
+
+        .navigation {
+            display: flex;
+            align-items: center;
+        }
+
+        .navigation nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background-color: var(--hover-blue);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .login-link {
+            font-size: 1.5rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .login-tooltip {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--hover-blue);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-container:hover .login-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero-text {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .new-project-btn {
+            background-color: var(--header-bg);
+            color: var(--text-light);
+            border: none;
+            border-radius: 8px;
+            padding: 1.5rem 3rem;
+            font-size: 2rem;
+            font-family: 'Roboto Mono', monospace;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .new-project-btn:hover {
+            background-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .editors-menu {
+            display: none;
+            background-color: var(--dark-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .editors-menu.active {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+          .editor-btn {
+            background-color: var(--header-bg);
+            color: var(--text-light);
+            border: none;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+         .editor-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .texteditor { background-color: var(--text-editor); }
+        .documenteditor { background-color: var(--doc-editor); }
+        .tableeditor { background-color: var(--table-editor); }
+        .presentationeditor { background-color: var(--presentation-editor); }
+        .pictureeditor { background-color: var(--image-editor); color: #333; }
+        .videoaudioeditor { background-color: var(--media-editor); }
+        .threeeditor { background-color: var(--3d-editor); }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            
+            .logo {
+                margin-bottom: 1rem;
+                font-size: 2rem;
+            }
+            
+            .navigation nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .new-project-btn {
+                font-size: 1.5rem;
+                padding: 1rem 2rem;
+            }
+            
+            .hero-text {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">SWARM OFFICE</a>
+        <div class="navigation">
+            <nav>
+                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
+                <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li>
+                <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li>
+                <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li>
+                <li class="nav-item login-container">
+                    <a href="Login.html" class="nav-link login-link">👨‍🚒</a>
+                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div>
+                </li>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <p class="hero-text">We are students for students. We offer free to use office and media editors</p>
+            <button class="new-project-btn" id="menuBtn">NEW PROJECT</button>
+            <div class="editors-menu" id="navMenu">
+                <button class="editor-btn texteditor">Text Editor</button>
+                <button class="editor-btn documenteditor">Document Editor</button>
+                <button class="editor-btn tableeditor">Table Editor</button>
+                <button class="editor-btn presentationeditor">Presentation Editor</button>
+                <button class="editor-btn pictureeditor">Image Editor</button>
+                <button class="editor-btn videoaudioeditor">Video & Audio Editor</button>
+                <button class="editor-btn triDeditor">3D Editor</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const btn = document.getElementById("menuBtn");
+        const nav = document.getElementById("navMenu");
+
+        btn.addEventListener("click", () => {
+            nav.classList.toggle("active");
+        });
+    </script>
+    <script type="text/javascript">
+const editorButtons = document.querySelectorAll('.editor-btn');
+
+editorButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const classes = button.classList;
+        let targetClass = '';
+        classes.forEach(cls => {
+            if (cls !== 'editor-btn') {
+                targetClass = cls;
+            }
+        });
+        if (targetClass) {
+            window.location.href = `${targetClass}.html`;
+        }
+    });
+});
+    </script>
+</body>
+</html>
