@@ -1,5 +1,6 @@
 bin/
 include/
 lib/
+cloud_storage/
 users.db
 úvod.txt

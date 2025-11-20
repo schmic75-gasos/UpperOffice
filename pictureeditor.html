@@ -304,6 +304,7 @@
             background: linear-gradient(to right, var(--primary), var(--secondary));
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -514,6 +515,11 @@
             .canvas-area {
                 flex: 1;
             }
+            .header {
+                overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+            }
         }
 
         /* Scrollbar */
@@ -633,6 +639,18 @@
             background: rgba(245, 158, 11, 0.1);
             color: var(--warning);
             border: 1px solid var(--warning);
+        }
+        .public-image-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 10;
         }
     </style>
 </head>
@@ -1395,12 +1413,81 @@ async function loadImageFromCloud(fileId) {
 }
     </script>
     <script>
-        // Check for cloud file in URL parameters
+ // Check for cloud file in URL parameters - ONLY if user is logged in
 const urlParams = new URLSearchParams(window.location.search);
 const cloudFileId = urlParams.get('cloudFile');
 if (cloudFileId && localStorage.token) {
+    // User is logged in and wants to load from their cloud storage
     loadImageFromCloud(cloudFileId);
+} else if (cloudFileId && !localStorage.token) {
+    // User is not logged in but tried to access cloud file - show message
+    showStatus('Please login to access cloud files', 'warning');
 }
+    </script>
+    <script>
+        // Load image from public token
+function loadImageFromPublicToken(publicToken) {
+    showStatus('Loading image from public link...', 'success');
+    
+    // Load the actual image directly
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    img.onload = function() {
+        // Add public badge
+        const badge = document.createElement('div');
+        badge.className = 'public-image-badge';
+        badge.textContent = 'PUBLIC IMAGE';
+        document.getElementById('canvasContainer').appendChild(badge);
+        
+        originalImage = img;
+        editedImage = new Image();
+        editedImage.src = img.src;
+
+        // Setup canvas
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Show canvas, hide upload zone
+        document.getElementById('uploadZone').style.display = 'none';
+        canvas.style.display = 'block';
+        document.getElementById('adjustmentsPanel').style.display = 'block';
+        
+        // Draw image
+        ctx.drawImage(img, 0, 0);
+        
+        // Update info
+        document.getElementById('imageResolution').textContent = `${img.width} × ${img.height}px`;
+        document.getElementById('imageSize').textContent = 'Public Image';
+        document.getElementById('imageFormat').textContent = 'Public';
+        
+        // Reset filters
+        resetFilters();
+        
+        // Clear history
+        history = [];
+        historyIndex = -1;
+        saveToHistory();
+        
+        showStatus('Public image loaded!', 'success');
+    };
+    
+    img.onerror = function() {
+        showStatus('Error loading public image', 'warning');
+    };
+    
+    // Load image from the public endpoint
+    img.src = `/api/cloud/public/image/${publicToken}?t=${Date.now()}`;
+}
+
+// Check for public token in URL on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const publicToken = urlParams.get('publicToken');
+    if (publicToken) {
+        loadImageFromPublicToken(publicToken);
+    }
+});
     </script>
 </body>
 </html>

@@ -125,6 +125,7 @@ def cloud_files():
             "size": row[3],
             "upload_date": row[4],
             "is_public": row[5] is not None,
+            "public_token": row[5],  # PŘIDÁNO - toto chybělo!
             "public_url": f"/api/cloud/public/{row[5]}" if row[5] else None
         })
     
@@ -214,8 +215,49 @@ def cloud_unshare_file(file_id):
     
     return jsonify({"message": "File is now private"})
 
+# UPRAVENÝ endpoint - detekuje typ souboru
 @app.route("/api/cloud/public/<token>", methods=["GET"])
 def cloud_public_file(token):
+    con = db()
+    cur = con.cursor()
+    cur.execute("SELECT user_id, stored_filename, original_filename, file_type FROM cloud_files WHERE public_token=?", (token,))
+    file_data = cur.fetchone()
+    con.close()
+    
+    if not file_data:
+        return jsonify({"error": "File not found"}), 404
+    
+    user_id, stored_filename, original_filename, file_type = file_data
+    user_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}")
+    file_path = os.path.join(user_dir, stored_filename)
+    
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+    
+    # Pokud je soubor obrázek, přesměrujeme na picture editor
+    if file_type == 'image':
+        # Vrátíme HTML stránku, která přesměruje na picture editor
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Redirecting to Image Editor</title>
+            <script>
+                window.location.href = "/pictureeditor.html?publicToken={token}";
+            </script>
+        </head>
+        <body>
+            <p>Redirecting to image editor... <a href="/pictureeditor.html?publicToken={token}">Click here</a> if not redirected.</p>
+        </body>
+        </html>
+        ''', 200, {'Content-Type': 'text/html'}
+    else:
+        # Ostatní soubory se stahují normálně
+        return send_file(file_path, as_attachment=True, download_name=original_filename)
+
+# NOVÝ endpoint - pouze pro obrázky z veřejných odkazů
+@app.route("/api/cloud/public/image/<token>", methods=["GET"])
+def cloud_public_image(token):
     con = db()
     cur = con.cursor()
     cur.execute("SELECT user_id, stored_filename, original_filename FROM cloud_files WHERE public_token=?", (token,))
@@ -232,8 +274,9 @@ def cloud_public_file(token):
     if not os.path.exists(file_path):
         return jsonify({"error": "File not found"}), 404
     
-    return send_file(file_path, as_attachment=True, download_name=original_filename)
+    return send_file(file_path, as_attachment=False)
 
+# EXISTUJÍCÍ endpoint - zůstává pro přihlášené uživatele
 @app.route("/api/cloud/download/<int:file_id>", methods=["GET"])
 def cloud_download_file(file_id):
     token = request.headers.get("Authorization")
@@ -336,6 +379,10 @@ def noaccess():
 
 @app.route("/users.db")
 def noaccessdva():
+    return Response("{'error':'ACCESS DENIED'}", status=403, mimetype='application/json')
+
+@app.route("/cloud_storage")
+def noaccestri():
     return Response("{'error':'ACCESS DENIED'}", status=403, mimetype='application/json')
 
 @app.route("/api/ffmpegtest")

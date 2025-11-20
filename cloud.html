@@ -472,14 +472,25 @@
                             🗑️ Delete
                         </button>
                     </div>
-                    ${file.is_public ? `
-                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
-                            <strong>Public URL:</strong>
-                            <input type="text" value="${window.location.origin}${file.public_url}" readonly 
-                                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
-                                onclick="this.select()">
-                        </div>
-                    ` : ''}
+${file.is_public ? `
+    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+        <strong>Public URL:</strong>
+        ${file.type === 'image' ? 
+            `<input type="text" value="${window.location.origin}/pictureeditor.html?publicToken=${file.public_token}" readonly 
+                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
+                onclick="this.select()">
+             <div style="font-size: 0.7rem; color: var(--success); margin-top: 0.25rem;">
+                 📝 Opens directly in Image Editor
+             </div>` :
+            `<input type="text" value="${window.location.origin}${file.public_url}" readonly 
+                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
+                onclick="this.select()">
+             <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
+                 ⬇️ Downloads file
+             </div>`
+        }
+    </div>
+` : ''}
                 `;
                 
                 filesGrid.appendChild(fileCard);
