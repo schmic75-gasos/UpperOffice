@@ -11,8 +11,12 @@ import tempfile
 import requests
 import time
 import json
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__, static_folder="static")
+
+# [PŘIDEJTE ZA INICIALIZACI FLASK APLIKACE]
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 DB = "users.db"
 UPLOAD_FOLDER = "cloud_storage"
@@ -373,6 +377,87 @@ def profile():
 
     return jsonify({"username": username})
 
+@app.route("/api/collaboration/session/<int:file_id>", methods=["POST"])
+def create_collaboration_session(file_id):
+    """Vytvoří collaboration session pro soubor"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    share_mode = data.get('share_mode', 'read_only')
+    
+    con = db()
+    cur = con.cursor()
+    
+    # Ověření vlastnictví souboru
+    cur.execute("SELECT id FROM cloud_files WHERE id=? AND user_id=?", (file_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "File not found"}), 404
+    
+    # Získání public tokenu
+    cur.execute("SELECT public_token FROM cloud_files WHERE id=?", (file_id,))
+    file_data = cur.fetchone()
+    if not file_data or not file_data[0]:
+        con.close()
+        return jsonify({"error": "File is not shared publicly"}), 400
+    
+    public_token = file_data[0]
+    
+    # Vytvoření nebo aktualizace collaboration session
+    cur.execute("""
+        INSERT OR REPLACE INTO collaboration_sessions (file_id, public_token, share_mode, owner_id)
+        VALUES (?, ?, ?, ?)
+    """, (file_id, public_token, share_mode, user_id))
+    
+    con.commit()
+    session_id = cur.lastrowid
+    
+    con.close()
+    
+    return jsonify({
+        "session_id": session_id,
+        "public_token": public_token,
+        "share_mode": share_mode,
+        "message": f"Collaboration session created with {share_mode} mode"
+    })
+
+@app.route("/api/collaboration/session/<public_token>", methods=["GET"])
+def get_collaboration_session(public_token):
+    """Získá informace o collaboration session"""
+    con = db()
+    cur = con.cursor()
+    
+    cur.execute("""
+        SELECT cs.id, cs.file_id, cs.share_mode, cs.owner_id, u.username as owner_name,
+               cf.original_filename, COUNT(ac.id) as active_users
+        FROM collaboration_sessions cs
+        JOIN users u ON cs.owner_id = u.id
+        JOIN cloud_files cf ON cs.file_id = cf.id
+        LEFT JOIN active_collaborators ac ON cs.id = ac.session_id
+        WHERE cs.public_token = ?
+        GROUP BY cs.id
+    """, (public_token,))
+    
+    session_data = cur.fetchone()
+    con.close()
+    
+    if not session_data:
+        return jsonify({"error": "Collaboration session not found"}), 404
+    
+    return jsonify({
+        "session_id": session_data[0],
+        "file_id": session_data[1],
+        "share_mode": session_data[2],
+        "owner_id": session_data[3],
+        "owner_name": session_data[4],
+        "filename": session_data[5],
+        "active_users": session_data[6]
+    })
+
 @app.route("/app.py")
 def noaccess():
     return Response("{'error':'ACCESS DENIED'}", status=403, mimetype='application/json')
@@ -567,6 +652,356 @@ def extract_text_from_doc(file_content):
         print(f"Text extraction error: {e}")
         return "Document content loaded. Start editing below."
 
+@socketio.on('connect')
+def handle_connect():
+    print(f"Client connected: {request.sid}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    try:
+        con = db()
+        cur = con.cursor()
+        
+        # Odstranit uživatele z active collaborators
+        cur.execute("DELETE FROM active_collaborators WHERE socket_id=?", (request.sid,))
+        con.commit()
+        con.close()
+        
+        print(f"Client disconnected: {request.sid}")
+    except Exception as e:
+        print(f"Error during disconnect: {e}")
+
+@socketio.on('join_collaboration')
+def handle_join_collaboration(data):
+    try:
+        public_token = data.get('public_token')
+        user_token = data.get('user_token')
+        
+        con = db()
+        cur = con.cursor()
+        
+        # Získání session informací
+        cur.execute("""
+            SELECT cs.id, cs.file_id, cs.share_mode, cs.owner_id 
+            FROM collaboration_sessions cs 
+            WHERE cs.public_token=?
+        """, (public_token,))
+        
+        session = cur.fetchone()
+        if not session:
+            emit('error', {'message': 'Collaboration session not found'})
+            return
+        
+        session_id, file_id, share_mode, owner_id = session
+        
+        # Získání user_id pokud je uživatel přihlášen
+        user_id = None
+        username = "Anonymous"
+        if user_token:
+            user_id = get_user_id_from_token(user_token)
+            if user_id:
+                cur.execute("SELECT username FROM users WHERE id=?", (user_id,))
+                user_data = cur.fetchone()
+                if user_data:
+                    username = user_data[0]
+        
+        # Pro read-write režim vyžadujeme přihlášení
+        if share_mode == 'read_write' and not user_id:
+            emit('error', {'message': 'Authentication required for read-write collaboration'})
+            return
+        
+        # Přidání do active collaborators
+        cur.execute("""
+            INSERT OR REPLACE INTO active_collaborators (session_id, user_id, socket_id)
+            VALUES (?, ?, ?)
+        """, (session_id, user_id, request.sid))
+        
+        # Získání seznamu aktivních spolupracovníků
+        cur.execute("""
+            SELECT u.username, ac.joined_at 
+            FROM active_collaborators ac
+            LEFT JOIN users u ON ac.user_id = u.id
+            WHERE ac.session_id = ?
+        """, (session_id,))
+        
+        collaborators = []
+        for row in cur.fetchall():
+            collaborators.append({
+                'username': row[0] or 'Anonymous',
+                'joined_at': row[1]
+            })
+        
+        con.commit()
+        con.close()
+        
+        # Připojení k room
+        join_room(public_token)
+        
+        # Odeslání informací o připojení
+        emit('user_joined', {
+            'username': username,
+            'user_id': user_id,
+            'collaborators': collaborators
+        }, room=public_token)
+        
+        emit('session_info', {
+            'session_id': session_id,
+            'share_mode': share_mode,
+            'owner_id': owner_id,
+            'username': username
+        })
+        
+        print(f"User {username} joined collaboration {public_token}")
+        
+    except Exception as e:
+        print(f"Error in join_collaboration: {e}")
+        emit('error', {'message': 'Failed to join collaboration session'})
+
+@socketio.on('leave_collaboration')
+def handle_leave_collaboration(data):
+    try:
+        public_token = data.get('public_token')
+        user_token = data.get('user_token')
+        
+        con = db()
+        cur = con.cursor()
+        
+        # Odstranění z active collaborators
+        cur.execute("DELETE FROM active_collaborators WHERE socket_id=?", (request.sid,))
+        
+        # Získání username pro oznámení
+        username = "Anonymous"
+        if user_token:
+            user_id = get_user_id_from_token(user_token)
+            if user_id:
+                cur.execute("SELECT username FROM users WHERE id=?", (user_id,))
+                user_data = cur.fetchone()
+                if user_data:
+                    username = user_data[0]
+        
+        con.commit()
+        con.close()
+        
+        # Opuštění room
+        leave_room(public_token)
+        
+        # Odeslání informací o odpojení
+        emit('user_left', {
+            'username': username,
+            'socket_id': request.sid
+        }, room=public_token)
+        
+        print(f"User {username} left collaboration {public_token}")
+        
+    except Exception as e:
+        print(f"Error in leave_collaboration: {e}")
+
+@socketio.on('canvas_operation')
+def handle_canvas_operation(data):
+    try:
+        public_token = data.get('public_token')
+        operation = data.get('operation')
+        username = data.get('username', 'Anonymous')
+        
+        # Odeslání operace všem ostatním v room
+        emit('canvas_update', {
+            'operation': operation,
+            'username': username,
+            'socket_id': request.sid
+        }, room=public_token, include_self=False)
+        
+    except Exception as e:
+        print(f"Error in canvas_operation: {e}")
+
+@socketio.on('cursor_move')
+def handle_cursor_move(data):
+    try:
+        public_token = data.get('public_token')
+        position = data.get('position')
+        username = data.get('username', 'Anonymous')
+        
+        # Odeslání pozice kurzoru všem ostatním
+        emit('cursor_update', {
+            'position': position,
+            'username': username,
+            'socket_id': request.sid
+        }, room=public_token, include_self=False)
+        
+    except Exception as e:
+        print(f"Error in cursor_move: {e}")
+
+@app.route("/api/ide/projects", methods=["GET"])
+def get_ide_projects():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT id, name, files_content, folder_structure, created_at, updated_at 
+        FROM ide_projects 
+        WHERE user_id=? 
+        ORDER BY updated_at DESC
+    """, (user_id,))
+    
+    projects = []
+    for row in cur.fetchall():
+        import json
+        projects.append({
+            "id": row[0],
+            "name": row[1],
+            "files": json.loads(row[2]) if row[2] else {},
+            "folders": json.loads(row[3]) if row[3] else [],
+            "created_at": row[4],
+            "updated_at": row[5]
+        })
+    
+    con.close()
+    return jsonify(projects)
+
+@app.route("/api/ide/projects", methods=["POST"])
+def create_ide_project():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    project_name = data.get("name", "Nový projekt")
+    files = data.get("files", {})
+    folders = data.get("folders", [])
+
+    con = db()
+    cur = con.cursor()
+    
+    import json
+    from datetime import datetime
+    
+    cur.execute("""
+        INSERT INTO ide_projects (user_id, name, files_content, folder_structure, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (user_id, project_name, json.dumps(files), json.dumps(folders), datetime.now(), datetime.now()))
+    
+    con.commit()
+    project_id = cur.lastrowid
+    con.close()
+    
+    return jsonify({
+        "message": "Projekt vytvořen",
+        "project_id": project_id
+    }), 201
+
+@app.route("/api/ide/projects/<int:project_id>", methods=["PUT"])
+def update_ide_project(project_id):
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    files = data.get("files", {})
+    folders = data.get("folders", [])
+
+    con = db()
+    cur = con.cursor()
+    
+    # Ověřit vlastnictví
+    cur.execute("SELECT id FROM ide_projects WHERE id=? AND user_id=?", (project_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "Projekt nenalezen"}), 404
+
+    import json
+    from datetime import datetime
+    
+    cur.execute("""
+        UPDATE ide_projects 
+        SET files_content=?, folder_structure=?, updated_at=?
+        WHERE id=?
+    """, (json.dumps(files), json.dumps(folders), datetime.now(), project_id))
+    
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "Projekt aktualizován"})
+
+@app.route("/api/ide/projects/<int:project_id>", methods=["DELETE"])
+def delete_ide_project(project_id):
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    
+    # Ověřit vlastnictví
+    cur.execute("SELECT id FROM ide_projects WHERE id=? AND user_id=?", (project_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "Projekt nenalezen"}), 404
+
+    cur.execute("DELETE FROM ide_projects WHERE id=?", (project_id,))
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "Projekt smazán"})
+
+@app.route("/api/ide/folders", methods=["POST"])
+def create_ide_folder():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    project_id = data.get("project_id")
+    folder_name = data.get("name", "nová složka")
+    parent_path = data.get("parent_path", "")
+
+    con = db()
+    cur = con.cursor()
+    
+    # Ověřit vlastnictví projektu
+    cur.execute("SELECT id FROM ide_projects WHERE id=? AND user_id=?", (project_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "Projekt nenalezen"}), 404
+
+    import json
+    cur.execute("SELECT folder_structure FROM ide_projects WHERE id=?", (project_id,))
+    folders = json.loads(cur.fetchone()[0]) if cur.fetchone()[0] else []
+    
+    new_folder = {
+        "name": folder_name,
+        "path": f"{parent_path}/{folder_name}".lstrip("/"),
+        "created_at": str(__import__('datetime').datetime.now())
+    }
+    
+    folders.append(new_folder)
+    
+    cur.execute("""
+        UPDATE ide_projects 
+        SET folder_structure=?
+        WHERE id=?
+    """, (json.dumps(folders), project_id))
+    
+    con.commit()
+    con.close()
+    
+    return jsonify({
+        "message": "Složka vytvořena",
+        "folder": new_folder
+    }), 201
+
+
 # Aktualizovaná funkce convert_doc_to_html
 @app.route("/api/convert/doc-to-html", methods=["POST"])
 def convert_doc_to_html():
@@ -712,6 +1147,260 @@ def convert_cloud_file(file_id):
     except Exception as e:
         return jsonify({"error": f"Conversion error: {str(e)}"}), 500
 
+# ----------- 3D PROJECTS CLOUD STORAGE -----------
+@app.route("/api/3d/projects", methods=["POST"])
+def save_3d_project():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    project_name = data.get("name", "Nový 3D projekt")
+    project_data = data.get("project_data", "{}")
+
+    con = db()
+    cur = con.cursor()
+    
+    try:
+        cur.execute("""
+            INSERT INTO three_d_projects (user_id, name, project_data, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, project_name, project_data, datetime.now(), datetime.now()))
+        
+        con.commit()
+        project_id = cur.lastrowid
+        return jsonify({
+            "message": "3D projekt uložen",
+            "project_id": project_id
+        }), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        con.close()
+
+@app.route("/api/3d/projects", methods=["GET"])
+def get_3d_projects():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT id, name, created_at, updated_at, public_token 
+        FROM three_d_projects 
+        WHERE user_id=? 
+        ORDER BY updated_at DESC
+    """, (user_id,))
+    
+    projects = []
+    for row in cur.fetchall():
+        projects.append({
+            "id": row[0],
+            "name": row[1],
+            "created_at": row[2],
+            "updated_at": row[3],
+            "is_public": row[4] is not None
+        })
+    
+    con.close()
+    return jsonify(projects)
+
+@app.route("/api/3d/projects/<int:project_id>", methods=["GET"])
+def get_3d_project(project_id):
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT name, project_data, public_token 
+        FROM three_d_projects 
+        WHERE id=? AND user_id=?
+    """, (project_id, user_id))
+    
+    project = cur.fetchone()
+    con.close()
+    
+    if not project:
+        return jsonify({"error": "Projekt nenalezen"}), 404
+    
+    return jsonify({
+        "name": project[0],
+        "project_data": project[1],
+        "is_public": project[2] is not None
+    })
+
+@app.route("/api/3d/projects/<int:project_id>", methods=["PUT"])
+def update_3d_project(project_id):
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    project_name = data.get("name")
+    project_data = data.get("project_data")
+
+    con = db()
+    cur = con.cursor()
+    
+    # Ověřit vlastnictví
+    cur.execute("SELECT id FROM three_d_projects WHERE id=? AND user_id=?", (project_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "Projekt nenalezen"}), 404
+
+    try:
+        if project_name and project_data:
+            cur.execute("""
+                UPDATE three_d_projects 
+                SET name=?, project_data=?, updated_at=?
+                WHERE id=?
+            """, (project_name, project_data, datetime.now(), project_id))
+        elif project_name:
+            cur.execute("""
+                UPDATE three_d_projects 
+                SET name=?, updated_at=?
+                WHERE id=?
+            """, (project_name, datetime.now(), project_id))
+        elif project_data:
+            cur.execute("""
+                UPDATE three_d_projects 
+                SET project_data=?, updated_at=?
+                WHERE id=?
+            """, (project_data, datetime.now(), project_id))
+            
+        con.commit()
+        return jsonify({"message": "Projekt aktualizován"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        con.close()
+
+@app.route("/api/3d/projects/<int:project_id>", methods=["DELETE"])
+def delete_3d_project(project_id):
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    
+    # Ověřit vlastnictví
+    cur.execute("SELECT id FROM three_d_projects WHERE id=? AND user_id=?", (project_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "Projekt nenalezen"}), 404
+
+    cur.execute("DELETE FROM three_d_projects WHERE id=?", (project_id,))
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "Projekt smazán"})
+
+@app.route("/api/3d/projects/<int:project_id>/share", methods=["POST"])
+def share_3d_project(project_id):
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    
+    # Ověřit vlastnictví
+    cur.execute("SELECT id FROM three_d_projects WHERE id=? AND user_id=?", (project_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "Projekt nenalezen"}), 404
+    
+    # Generovat public token
+    public_token = str(uuid.uuid4())
+    cur.execute("UPDATE three_d_projects SET public_token=? WHERE id=?", (public_token, project_id))
+    con.commit()
+    con.close()
+    
+    return jsonify({
+        "message": "Projekt je nyní veřejný",
+        "public_url": f"/api/3d/projects/public/{public_token}"
+    })
+
+@app.route("/api/3d/projects/<int:project_id>/unshare", methods=["POST"])
+def unshare_3d_project(project_id):
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    
+    # Ověřit vlastnictví
+    cur.execute("SELECT id FROM three_d_projects WHERE id=? AND user_id=?", (project_id, user_id))
+    if not cur.fetchone():
+        con.close()
+        return jsonify({"error": "Projekt nenalezen"}), 404
+    
+    cur.execute("UPDATE three_d_projects SET public_token=NULL WHERE id=?", (project_id,))
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "Projekt je nyní soukromý"})
+
+@app.route("/api/3d/projects/public/<token>", methods=["GET"])
+def get_public_3d_project(token):
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT id, name, project_data, user_id 
+        FROM three_d_projects 
+        WHERE public_token=?
+    """, (token,))
+    
+    project = cur.fetchone()
+    con.close()
+    
+    if not project:
+        return jsonify({"error": "Projekt nenalezen"}), 404
+    
+    return jsonify({
+        "id": project[0],
+        "name": project[1],
+        "project_data": project[2],
+        "owner_id": project[3]
+    })
+
+# SocketIO events pro 3D spolupráci
+@socketio.on('3d_operation')
+def handle_3d_operation(data):
+    try:
+        public_token = data.get('public_token')
+        operation = data.get('operation')
+        username = data.get('username', 'Anonymous')
+        
+        # Odeslání operace všem ostatním v room
+        emit('3d_update', {
+            'operation': operation,
+            'username': username,
+            'socket_id': request.sid
+        }, room=public_token, include_self=False)
+        
+    except Exception as e:
+        print(f"Error in 3d_operation: {e}")
+
 
 # ----------- STATIC FILES -----------
 @app.route("/", defaults={"path": "index.html"})
@@ -746,6 +1435,58 @@ if __name__ == "__main__":
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS collaboration_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_id INTEGER NOT NULL,
+        public_token TEXT NOT NULL,
+        share_mode TEXT NOT NULL DEFAULT 'read_only',
+        owner_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (file_id) REFERENCES cloud_files (id),
+        FOREIGN KEY (owner_id) REFERENCES users (id)
+        )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS active_collaborators (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        socket_id TEXT NOT NULL,
+        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES collaboration_sessions (id),
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS ide_projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        files_content TEXT,
+        folder_structure TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS three_d_projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        project_data TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        public_token TEXT UNIQUE,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+
     con.commit()
     con.close()
     

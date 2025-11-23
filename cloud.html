@@ -89,6 +89,72 @@
             border-radius: 0 0 16px 16px;
         }
 
+        /* Filter Section Styles */
+        .filter-section {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-dark);
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background-color: var(--bg-light);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
         .files-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -194,6 +260,16 @@
             transform: translateY(-1px);
         }
 
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
         .btn-success {
             background: var(--success);
             color: white;
@@ -277,6 +353,72 @@
             font-size: 0.7rem;
             margin-left: 0.5rem;
         }
+
+        .collaboration-info {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--bg-light);
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .share-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .share-option:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .share-option.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .share-option input[type="radio"] {
+            margin: 0;
+        }
+
+        .option-description {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -307,6 +449,45 @@
 
             <div class="status-message" id="statusMessage"></div>
 
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="nameFilter">Search by Name</label>
+                        <input type="text" id="nameFilter" class="filter-input" placeholder="Enter file name...">
+                    </div>
+                    <div class="filter-group">
+                        <label for="typeFilter">File Type</label>
+                        <select id="typeFilter" class="filter-select">
+                            <option value="all">All Types</option>
+                            <option value="image">Images</option>
+                            <option value="document">Documents</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sizeFilter">Size</label>
+                        <select id="sizeFilter" class="filter-select">
+                            <option value="all">All Sizes</option>
+                            <option value="small">Small (&lt; 1MB)</option>
+                            <option value="medium">Medium (1-5MB)</option>
+                            <option value="large">Large (&gt; 5MB)</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sharingFilter">Sharing Status</label>
+                        <select id="sharingFilter" class="filter-select">
+                            <option value="all">All Files</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="applyFilters" class="btn btn-primary">Apply Filters</button>
+                        <button id="resetFilters" class="btn btn-secondary">Reset</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="files-grid" id="filesGrid">
                 <!-- Files will be loaded here -->
             </div>
@@ -321,6 +502,23 @@
         const filesGrid = document.getElementById('filesGrid');
         const statusMessage = document.getElementById('statusMessage');
         const uploadProgress = document.getElementById('uploadProgress');
+
+        // Filter elements
+        const nameFilter = document.getElementById('nameFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const sizeFilter = document.getElementById('sizeFilter');
+        const sharingFilter = document.getElementById('sharingFilter');
+        const applyFilters = document.getElementById('applyFilters');
+        const resetFilters = document.getElementById('resetFilters');
+
+        // Current files and filters
+        let allFiles = [];
+        let currentFilters = {
+            name: '',
+            type: 'all',
+            size: 'all',
+            sharing: 'all'
+        };
 
         // Check authentication
         if (!localStorage.token) {
@@ -349,6 +547,85 @@
             handleFiles(e.target.files);
         });
 
+        // Filter functionality
+        applyFilters.addEventListener('click', applyFileFilters);
+        resetFilters.addEventListener('click', resetFileFilters);
+        
+        // Allow Enter key to apply filters in name filter
+        nameFilter.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                applyFileFilters();
+            }
+        });
+
+        function applyFileFilters() {
+            currentFilters = {
+                name: nameFilter.value.toLowerCase(),
+                type: typeFilter.value,
+                size: sizeFilter.value,
+                sharing: sharingFilter.value
+            };
+            
+            displayFiles(allFiles);
+        }
+
+        function resetFileFilters() {
+            nameFilter.value = '';
+            typeFilter.value = 'all';
+            sizeFilter.value = 'all';
+            sharingFilter.value = 'all';
+            
+            currentFilters = {
+                name: '',
+                type: 'all',
+                size: 'all',
+                sharing: 'all'
+            };
+            
+            displayFiles(allFiles);
+        }
+
+        function filterFiles(files) {
+            return files.filter(file => {
+                // Filter by name
+                if (currentFilters.name && 
+                    !file.filename.toLowerCase().includes(currentFilters.name)) {
+                    return false;
+                }
+                
+                // Filter by type
+                if (currentFilters.type !== 'all' && 
+                    file.type !== currentFilters.type) {
+                    return false;
+                }
+                
+                // Filter by size
+                if (currentFilters.size !== 'all') {
+                    const fileSizeMB = file.size / (1024 * 1024);
+                    
+                    switch(currentFilters.size) {
+                        case 'small':
+                            if (fileSizeMB >= 1) return false;
+                            break;
+                        case 'medium':
+                            if (fileSizeMB < 1 || fileSizeMB > 5) return false;
+                            break;
+                        case 'large':
+                            if (fileSizeMB <= 5) return false;
+                            break;
+                    }
+                }
+                
+                // Filter by sharing status
+                if (currentFilters.sharing !== 'all') {
+                    if (currentFilters.sharing === 'public' && !file.is_public) return false;
+                    if (currentFilters.sharing === 'private' && file.is_public) return false;
+                }
+                
+                return true;
+            });
+        }
+
         async function handleFiles(files) {
             for (let file of files) {
                 await uploadFile(file);
@@ -360,7 +637,6 @@
             const formData = new FormData();
             formData.append('file', file);
 
-            // Simulate progress
             let progress = 0;
             const progressInterval = setInterval(() => {
                 progress += Math.random() * 10;
@@ -405,8 +681,8 @@
                 });
 
                 if (response.ok) {
-                    const files = await response.json();
-                    displayFiles(files);
+                    allFiles = await response.json();
+                    displayFiles(allFiles);
                 } else {
                     showStatus('Error loading files', 'error');
                 }
@@ -418,18 +694,21 @@
         function displayFiles(files) {
             filesGrid.innerHTML = '';
             
-            if (files.length === 0) {
+            // Apply filters
+            const filteredFiles = filterFiles(files);
+            
+            if (filteredFiles.length === 0) {
                 filesGrid.innerHTML = `
                     <div class="empty-state" style="grid-column: 1 / -1;">
-                        <div class="empty-state-icon">☁️</div>
-                        <h3>No files yet</h3>
-                        <p>Upload some files to get started!</p>
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>No files found</h3>
+                        <p>Try adjusting your filters or upload new files</p>
                     </div>
                 `;
                 return;
             }
 
-            files.forEach(file => {
+            filteredFiles.forEach(file => {
                 const fileCard = document.createElement('div');
                 fileCard.className = 'file-card';
                 
@@ -437,6 +716,19 @@
                 const size = formatFileSize(file.size);
                 const date = new Date(file.upload_date).toLocaleDateString();
                 const previewUrl = file.type === 'image' ? `/api/cloud/download/${file.id}` : null;
+                
+                // Collaboration info
+                let collaborationInfo = '';
+                if (file.is_public) {
+                    collaborationInfo = `
+                        <div class="collaboration-info">
+                            <strong>Collaboration:</strong> 
+                            <button class="btn btn-success" onclick="manageCollaboration(${file.id})" style="padding: 2px 6px; font-size: 0.7rem; margin-left: 0.5rem;">
+                                Manage
+                            </button>
+                        </div>
+                    `;
+                }
                 
                 fileCard.innerHTML = `
                     <div class="file-preview">
@@ -472,25 +764,26 @@
                             🗑️ Delete
                         </button>
                     </div>
-${file.is_public ? `
-    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
-        <strong>Public URL:</strong>
-        ${file.type === 'image' ? 
-            `<input type="text" value="${window.location.origin}/pictureeditor.html?publicToken=${file.public_token}" readonly 
-                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
-                onclick="this.select()">
-             <div style="font-size: 0.7rem; color: var(--success); margin-top: 0.25rem;">
-                 📝 Opens directly in Image Editor
-             </div>` :
-            `<input type="text" value="${window.location.origin}${file.public_url}" readonly 
-                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
-                onclick="this.select()">
-             <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
-                 ⬇️ Downloads file
-             </div>`
-        }
-    </div>
-` : ''}
+                    ${collaborationInfo}
+                    ${file.is_public ? `
+                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                        <strong>Public URL:</strong>
+                        ${file.type === 'image' ? 
+                            `<input type="text" value="${window.location.origin}/pictureeditor.html?publicToken=${file.public_token}" readonly 
+                                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
+                                onclick="this.select()">
+                             <div style="font-size: 0.7rem; color: var(--success); margin-top: 0.25rem;">
+                                 📝 Opens directly in Image Editor
+                             </div>` :
+                            `<input type="text" value="${window.location.origin}${file.public_url}" readonly 
+                                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
+                                onclick="this.select()">
+                             <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                 ⬇️ Downloads file
+                             </div>`
+                        }
+                    </div>
+                ` : ''}
                 `;
                 
                 filesGrid.appendChild(fileCard);
@@ -499,10 +792,8 @@ ${file.is_public ? `
 
         function openFile(fileId, fileType) {
             if (fileType === 'image') {
-                // Open image in picture editor
                 window.open(`pictureeditor.html?cloudFile=${fileId}`, '_blank');
             } else {
-                // Open document in document editor
                 window.open(`documenteditor.html?cloudFile=${fileId}`, '_blank');
             }
         }
@@ -594,6 +885,173 @@ ${file.is_public ? `
                     loadFiles();
                 } else {
                     showStatus('Error deleting file', 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        // Collaboration management
+        async function manageCollaboration(fileId) {
+            try {
+                const response = await fetch(`/api/collaboration/session/by-file/${fileId}`, {
+                    headers: {
+                        'Authorization': localStorage.token
+                    }
+                });
+
+                if (response.ok) {
+                    const session = await response.json();
+                    showCollaborationManagementModal(fileId, session);
+                } else {
+                    showCollaborationCreationModal(fileId);
+                }
+            } catch (error) {
+                showStatus('Error managing collaboration: ' + error.message, 'error');
+            }
+        }
+
+        function showCollaborationCreationModal(fileId) {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">Create Collaboration Session</h2>
+                        <button class="btn" id="closeCollabModal" style="background: transparent; padding: 4px;">✕</button>
+                    </div>
+                    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+                        Choose the collaboration mode for this file:
+                    </p>
+                    
+                    <div class="share-option" onclick="selectShareOption(this, 'read_only')">
+                        <input type="radio" name="shareMode" value="read_only" checked>
+                        <div>
+                            <div style="font-weight: 600;">View Only</div>
+                            <div class="option-description">
+                                Others can view the file but cannot make changes
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="share-option" onclick="selectShareOption(this, 'read_write')">
+                        <input type="radio" name="shareMode" value="read_write">
+                        <div>
+                            <div style="font-weight: 600;">Real-time Collaboration</div>
+                            <div class="option-description">
+                                Others can view and edit the file in real-time (requires login)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button class="btn btn-secondary" id="cancelCollab">Cancel</button>
+                        <button class="btn btn-primary" id="confirmCollab">Create Collaboration</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('closeCollabModal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            document.getElementById('cancelCollab').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            document.getElementById('confirmCollab').addEventListener('click', async () => {
+                const shareMode = document.querySelector('input[name="shareMode"]:checked').value;
+                await createCollaborationSession(fileId, shareMode);
+                document.body.removeChild(modal);
+            });
+        }
+
+        function selectShareOption(element, mode) {
+            document.querySelectorAll('.share-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.querySelector('input[type="radio"]').checked = false;
+            });
+            element.classList.add('selected');
+            element.querySelector('input[type="radio"]').checked = true;
+        }
+
+        async function createCollaborationSession(fileId, shareMode) {
+            try {
+                const response = await fetch(`/api/collaboration/session/${fileId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': localStorage.token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ share_mode: shareMode })
+                });
+
+                if (response.ok) {
+                    showStatus('Collaboration session created successfully!', 'success');
+                    loadFiles();
+                } else {
+                    const error = await response.json();
+                    showStatus('Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showCollaborationManagementModal(fileId, session) {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">Manage Collaboration</h2>
+                        <button class="btn" id="closeCollabModal" style="background: transparent; padding: 4px;">✕</button>
+                    </div>
+                    
+                    <div style="background: rgba(99, 102, 241, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 1rem;">
+                        <div style="font-weight: 600;">Current Mode: ${session.share_mode === 'read_write' ? 'Real-time Collaboration' : 'View Only'}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-muted);">
+                            Active users: ${session.active_users || 0}
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button class="btn btn-danger" id="deleteCollab">Delete Collaboration</button>
+                        <button class="btn btn-secondary" id="closeCollab">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('closeCollabModal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            document.getElementById('closeCollab').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            document.getElementById('deleteCollab').addEventListener('click', async () => {
+                await deleteCollaborationSession(session.id);
+                document.body.removeChild(modal);
+            });
+        }
+
+        async function deleteCollaborationSession(sessionId) {
+            try {
+                const response = await fetch(`/api/collaboration/session/${sessionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': localStorage.token
+                    }
+                });
+
+                if (response.ok) {
+                    showStatus('Collaboration session deleted', 'success');
+                    loadFiles();
+                } else {
+                    showStatus('Error deleting collaboration session', 'error');
                 }
             } catch (error) {
                 showStatus('Error: ' + error.message, 'error');

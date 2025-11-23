@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDE - Swarm Office</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg-dark: #1e1e1e;
+            --bg-darker: #121212;
+            --text-light: #e0e0e0;
+            --text-muted: #999;
+            --border: #333;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: var(--bg-darker);
+            color: var(--text-light);
+            overflow: hidden;
+        }
+
+        .ide-container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .ide-header {
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .ide-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .ide-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .ide-filename {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .ide-header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: var(--bg-dark);
+            color: var(--text-light);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-success {
+            background: var(--success);
+            border-color: var(--success);
+            color: #000;
+        }
+
+        .btn-success:hover {
+            opacity: 0.8;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.8;
+        }
+
+        .ide-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--bg-dark);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .sidebar-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .file-tree {
+            font-size: 0.85rem;
+        }
+
+        .file-item {
+            padding: 0.4rem 0.5rem;
+            margin: 0.2rem 0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            user-select: none;
+            position: relative;
+        }
+
+        .file-item:hover {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .file-item.active {
+            background: rgba(99, 102, 241, 0.3);
+            color: var(--primary);
+        }
+
+        .file-item-icon {
+            width: 16px;
+            text-align: center;
+        }
+
+        .file-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-item-actions {
+            display: none;
+            gap: 0.25rem;
+        }
+
+        .file-item:hover .file-item-actions {
+            display: flex;
+        }
+
+        .file-item-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.7rem;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-item-btn:hover {
+            color: var(--text-light);
+        }
+
+        .folder-contents {
+            display: none;
+            margin-left: 1rem;
+        }
+
+        .folder-contents.expanded {
+            display: block;
+        }
+
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tabs-bar {
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            overflow-x: auto;
+        }
+
+        .tab {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            font-size: 0.85rem;
+        }
+
+        .tab.active {
+            background: rgba(99, 102, 241, 0.3);
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-close {
+            background: transparent;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 0.7rem;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-controls {
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+        }
+
+        .editor-stats {
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        .editor-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-darker);
+            color: var(--text-light);
+            border: none;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            tab-size: 4;
+        }
+
+        .preview-panel {
+            flex: 1;
+            border-left: 1px solid var(--border);
+            overflow: auto;
+            background: var(--bg-darker);
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .preview-content {
+            padding: 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .preview-table th {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-dark);
+            padding: 2rem;
+            border-radius: 8px;
+            min-width: 400px;
+            max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-darker);
+            color: var(--text-light);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            min-width: 200px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-list.show {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .status-bar {
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: var(--success);
+            color: #000;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .notification.warning {
+            background: var(--warning);
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="ide-container">
+        <!-- Header -->
+        <div class="ide-header">
+            <div class="ide-header-left">
+                <span class="ide-title">IDE</span>
+                <span class="ide-filename" id="currentFile">Nový projekt</span>
+            </div>
+            <div class="ide-header-actions">
+                <button class="btn" id="newFileBtn" title="Nový soubor (Ctrl+N)">➕ Nový soubor</button>
+                <button class="btn" id="newFolderBtn" title="Nová složka">📁 Nová složka</button>
+                <button class="btn" id="saveBtn" title="Uložit (Ctrl+S)">💾 Uložit</button>
+                <button class="btn" id="uploadCloudBtn" title="Nahrát na cloud">☁️ Upload</button>
+                <button class="btn" id="downloadCloudBtn" title="Stáhnout z cloudu">⬇️ Stáhnout</button>
+                <button class="btn btn-success" id="gitBtn" title="Git/GitIgnore">📜 Git</button>
+                <button class="btn btn-danger" id="logoutBtn" title="Odhlášení">🚪 Odhlášení</button>
+            </div>
+        </div>
+
+        <!-- Main Area -->
+        <div class="ide-main">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" data-tab="explorer">🗂️ Průzkumník</button>
+                    <button class="sidebar-tab" data-tab="search">🔍 Hledání</button>
+                </div>
+                <div class="sidebar-content">
+                    <div id="explorerTab" class="sidebar-content-tab">
+                        <div class="file-tree" id="fileTree"></div>
+                    </div>
+                    <div id="searchTab" class="sidebar-content-tab" style="display: none;">
+                        <input type="text" id="searchInput" placeholder="Hledat text..." style="width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; background: var(--bg-darker); color: var(--text-light); border: 1px solid var(--border); border-radius: 4px;">
+                        <div id="searchResults"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div class="editor-area">
+                <!-- Tabs -->
+                <div class="tabs-bar" id="tabsBar"></div>
+
+                <!-- Editor -->
+                <div class="editor-wrapper">
+                    <div class="editor-controls">
+                        <select id="langSelect" style="background: var(--bg-darker); color: var(--text-light); border: 1px solid var(--border); padding: 0.4rem; border-radius: 4px;">
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="json">JSON</option>
+                            <option value="xml">XML</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="text">Prostý text</option>
+                        </select>
+                        <button class="btn" id="findBtn" title="Hledání (Ctrl+F)" style="font-size: 0.75rem;">🔍 Najít</button>
+                        <button class="btn" id="replaceBtn" title="Náhrada (Ctrl+H)" style="font-size: 0.75rem;">🔄 Nahradit</button>
+                        <button class="btn" id="minifyBtn" title="Minify kód" style="font-size: 0.75rem;">📦 Minify</button>
+                        <button class="btn" id="formatBtn" title="Formátování" style="font-size: 0.75rem;">✨ Formát</button>
+                        <div class="editor-stats">
+                            <span id="lineCol">Řádek 1, Sloupec 1</span> | <span id="charCount">Znaků: 0</span>
+                        </div>
+                    </div>
+
+                    <div class="editor-content">
+                        <textarea id="editor" placeholder="Začněte psaním..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span id="statusText">Připraveno</span>
+            <span id="saveStatus" style="color: var(--success);">Uloženo</span>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- New File Modal -->
+    <div class="modal" id="newFileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nový soubor</h2>
+                <button class="modal-close" onclick="closeModal('newFileModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Název souboru</label>
+                <input type="text" id="newFileName" placeholder="např. index.html">
+            </div>
+            <div class="form-group">
+                <label>Typ souboru</label>
+                <select id="newFileType">
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="js">JavaScript</option>
+                    <option value="json">JSON</option>
+                    <option value="xml">XML</option>
+                    <option value="md">Markdown</option>
+                    <option value="env">.env</option>
+                    <option value="txt">Text</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('newFileModal')">Zrušit</button>
+                <button class="btn btn-success" onclick="createNewFile()">Vytvořit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div class="modal" id="newFolderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nová složka</h2>
+                <button class="modal-close" onclick="closeModal('newFolderModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Název složky</label>
+                <input type="text" id="newFolderName" placeholder="např. src">
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('newFolderModal')">Zrušit</button>
+                <button class="btn btn-success" onclick="createNewFolder()">Vytvořit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Git Modal -->
+    <div class="modal" id="gitModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Git & GitIgnore</h2>
+                <button class="modal-close" onclick="closeModal('gitModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Vyberte šablonu:</label>
+                <select id="gitTemplate">
+                    <option value="nodejs">Node.js</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="custom">Vlastní</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('gitModal')">Zrušit</button>
+                <button class="btn btn-success" onclick="generateGitignore()">Vytvořit .gitignore</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cloud Modal -->
+    <div class="modal" id="cloudModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cloud Storage</h2>
+                <button class="modal-close" onclick="closeModal('cloudModal')">✕</button>
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0.5rem; color: var(--primary);">Nahrát na Cloud</h3>
+                <input type="text" id="cloudFileName" placeholder="Název projektu" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-darker); color: var(--text-light); border: 1px solid var(--border); border-radius: 4px;">
+                <button class="btn btn-success" onclick="uploadToCloud()" style="width: 100%;">📤 Nahrát</button>
+            </div>
+            <hr style="border: none; border-top: 1px solid var(--border); margin-bottom: 1.5rem;">
+            <div>
+                <h3 style="margin-bottom: 0.5rem; color: var(--primary);">Stáhnout z Cloudu</h3>
+                <div id="cloudFilesList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem;">
+                    <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Načítám soubory...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script>
+        // State
+        const state = {
+            files: {},
+            currentFile: null,
+            openTabs: [],
+            isDirty: {},
+            projectName: 'Projekt',
+            token: localStorage.getItem('token') || null,
+            autoSaveInterval: null
+        };
+
+        // Check auth
+        if (!state.token) {
+            showNotification('Prosím, přihlaste se', 'warning');
+            setTimeout(() => window.location.href = 'Login.html', 2000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+
+        function init() {
+            // Event listeners
+            document.getElementById('newFileBtn').addEventListener('click', () => openModal('newFileModal'));
+            document.getElementById('newFolderBtn').addEventListener('click', () => openModal('newFolderModal'));
+            document.getElementById('saveBtn').addEventListener('click', saveCurrentFile);
+            document.getElementById('uploadCloudBtn').addEventListener('click', () => {
+                loadCloudFiles();
+                openModal('cloudModal');
+            });
+            document.getElementById('downloadCloudBtn').addEventListener('click', downloadFromCloud);
+            document.getElementById('gitBtn').addEventListener('click', () => openModal('gitModal'));
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+
+            document.getElementById('editor').addEventListener('input', onEditorInput);
+            document.getElementById('editor').addEventListener('keydown', onEditorKeydown);
+            document.getElementById('langSelect').addEventListener('change', updateSyntaxHighlight);
+
+            document.getElementById('findBtn').addEventListener('click', openFindReplace);
+            document.getElementById('replaceBtn').addEventListener('click', openFindReplace);
+            document.getElementById('minifyBtn').addEventListener('click', minifyCode);
+            document.getElementById('formatBtn').addEventListener('click', formatCode);
+
+            document.querySelectorAll('.sidebar-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchSidebarTab(tab.dataset.tab));
+            });
+
+            document.getElementById('searchInput').addEventListener('input', performSearch);
+
+            // Auto-save každých 30 sekund
+            state.autoSaveInterval = setInterval(() => {
+                if (state.currentFile && state.isDirty[state.currentFile]) {
+                    saveCurrentFile();
+                }
+            }, 30000);
+
+            // Load initial file
+            createDefaultProject();
+        }
+
+        function createDefaultProject() {
+            state.files = {
+                'index.html': '<!DOCTYPE html>\n<html lang="cs">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Projekt</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Vítejte!</h1>\n    <script src="script.js"></script>\n</body>\n</html>',
+                'style.css': 'body {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n    background: #f5f5f5;\n}\n\nh1 {\n    color: #333;\n}',
+                'script.js': '// JavaScript kód\nconsole.log("Ahoj, světe!");\n\n// Váš kód zde...'
+            };
+
+            renderFileTree();
+            openFile('index.html');
+        }
+
+        function renderFileTree() {
+            const tree = document.getElementById('fileTree');
+            tree.innerHTML = '';
+            Object.keys(state.files).forEach(filename => {
+                const item = document.createElement('div');
+                item.className = 'file-item' + (filename === state.currentFile ? ' active' : '');
+                const ext = filename.split('.').pop();
+                const icon = getFileIcon(ext);
+                item.innerHTML = `
+                    <span class="file-item-icon">${icon}</span>
+                    <span class="file-item-name">${filename}</span>
+                    <div class="file-item-actions">
+                        <button class="file-item-btn"
+                                title="Smazat"
+                                onclick='deleteFile("${filename}")'>🗑️</button>
+                    </div>
+                `;
+
+                item.addEventListener('click', () => openFile(filename));
+                tree.appendChild(item);
+            });
+        }
+
+        function getFileIcon(ext) {
+            const icons = {
+                'html': '🌐',
+                'css': '🎨',
+                'js': '⚙️',
+                'json': '📦',
+                'xml': '📄',
+                'md': '📝',
+                'env': '🔑',
+                'txt': '📃',
+                'csv': '📊',
+                'py': '🐍'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function openFile(filename) {
+            state.currentFile = filename;
+            document.getElementById('editor').value = state.files[filename] || '';
+            document.getElementById('currentFile').textContent = filename;
+            document.getElementById('langSelect').value = getLangFromExt(filename.split('.').pop());
+            renderFileTree();
+            updateTabs();
+            updateSyntaxHighlight();
+        }
+
+        function getLangFromExt(ext) {
+            const map = {
+                'html': 'html',
+                'css': 'css',
+                'js': 'javascript',
+                'json': 'json',
+                'xml': 'xml',
+                'md': 'markdown',
+                'env': 'text',
+                'txt': 'text',
+                'csv': 'text',
+                'py': 'text'
+            };
+            return map[ext] || 'text';
+        }
+
+        function onEditorInput() {
+            if (state.currentFile) {
+                state.files[state.currentFile] = document.getElementById('editor').value;
+                state.isDirty[state.currentFile] = true;
+                document.getElementById('saveStatus').textContent = '● Neuloženo';
+                document.getElementById('saveStatus').style.color = 'var(--warning)';
+                updateStats();
+            }
+        }
+
+        function onEditorKeydown(e) {
+            const editor = document.getElementById('editor');
+            
+            // Tab insert
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + '\t' + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 1;
+                onEditorInput();
+                return;
+            }
+
+            // Ctrl+S - Save
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveCurrentFile();
+            }
+
+            // Ctrl+N - New File
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                openModal('newFileModal');
+            }
+
+            // Autocomplete - < pro HTML
+            if (e.key === '<' && document.getElementById('langSelect').value === 'html') {
+                showAutocomplete();
+            }
+        }
+
+        function showAutocomplete() {
+            const suggestions = [
+                '!DOCTYPE html',
+                'html',
+                'head',
+                'body',
+                'div',
+                'span',
+                'p',
+                'h1', 'h2', 'h3',
+                'a',
+                'img',
+                'form',
+                'input',
+                'button',
+                'script',
+                'style'
+            ];
+
+            // Jednoduchá implementace - v praxi by byla sofistikovanější
+        }
+
+        function updateStats() {
+            const text = document.getElementById('editor').value;
+            document.getElementById('charCount').textContent = 'Znaků: ' + text.length;
+            
+            const lines = text.split('\n');
+            const line = text.substring(0, document.getElementById('editor').selectionStart).split('\n').length;
+            const col = document.getElementById('editor').selectionStart - text.lastIndexOf('\n', document.getElementById('editor').selectionStart - 1);
+            document.getElementById('lineCol').textContent = `Řádek ${line}, Sloupec ${col}`;
+        }
+
+        function updateTabs() {
+            const tabsBar = document.getElementById('tabsBar');
+            tabsBar.innerHTML = '';
+            Object.keys(state.files).forEach(filename => {
+                const tab = document.createElement('div');
+                tab.className = 'tab' + (filename === state.currentFile ? ' active' : '');
+                const isDirty = state.isDirty[filename] ? '●' : '';
+                tab.innerHTML = `
+                    <span>${isDirty} ${filename}</span>
+                    <button class="tab-close" onclick="closeTab('${filename}')">✕</button>
+                `;
+                tab.addEventListener('click', () => openFile(filename));
+                tabsBar.appendChild(tab);
+            });
+        }
+
+        function closeTab(filename) {
+            if (state.isDirty[filename] && !confirm('Soubor není uložen. Opravdu jej zavřít?')) {
+                return;
+            }
+            delete state.files[filename];
+            delete state.isDirty[filename];
+            if (state.currentFile === filename) {
+                state.currentFile = Object.keys(state.files)[0] || null;
+                if (state.currentFile) {
+                    openFile(state.currentFile);
+                }
+            }
+            updateTabs();
+            renderFileTree();
+        }
+
+        function createNewFile() {
+            const name = document.getElementById('newFileName').value || 'untitled';
+            const ext = document.getElementById('newFileType').value;
+            const filename = name.includes('.') ? name : `${name}.${ext}`;
+            
+            if (state.files[filename]) {
+                showNotification('Soubor již existuje', 'error');
+                return;
+            }
+
+            const templates = {
+                'html': '<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="UTF-8">\n    <title>Dokument</title>\n</head>\n<body>\n    \n</body>\n</html>',
+                'css': '/* CSS */\n',
+                'js': '// JavaScript\n',
+                'json': '{}',
+                'xml': '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n</root>',
+                'md': '# Nadpis\n\nText zde...',
+                'env': '# Environment variables\n',
+                'txt': '',
+                'csv': 'column1,column2,column3\nvalue1,value2,value3'
+            };
+
+            state.files[filename] = templates[ext] || '';
+            openFile(filename);
+            updateTabs();
+            renderFileTree();
+            closeModal('newFileModal');
+            document.getElementById('newFileName').value = '';
+            showNotification(`Soubor ${filename} vytvořen`, 'success');
+        }
+
+        function createNewFolder() {
+            // Implementace složek by vyžadovala přestrukturování dat
+            showNotification('Složky budou dostupné v cloudu', 'warning');
+            closeModal('newFolderModal');
+        }
+
+        function deleteFile(filename) {
+            if (!confirm(`Opravdu smazat ${filename}?`)) {
+                return;
+            }
+            delete state.files[filename];
+            if (state.currentFile === filename) {
+                state.currentFile = Object.keys(state.files)[0] || null;
+            }
+            updateTabs();
+            renderFileTree();
+            if (state.currentFile) {
+                openFile(state.currentFile);
+            }
+            showNotification('Soubor smazán', 'success');
+        }
+
+        function saveCurrentFile() {
+            if (!state.currentFile) return;
+            state.isDirty[state.currentFile] = false;
+            document.getElementById('saveStatus').textContent = '✓ Uloženo';
+            document.getElementById('saveStatus').style.color = 'var(--success)';
+            updateTabs();
+            showNotification('Soubor uložen', 'success');
+        }
+
+        async function uploadToCloud() {
+            const projectName = document.getElementById('cloudFileName').value || state.projectName;
+            
+            // Vytvořit ZIP nebo JSON
+            const projectData = {
+                name: projectName,
+                files: state.files,
+                timestamp: new Date().toISOString()
+            };
+
+            const formData = new FormData();
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+            formData.append('file', blob, `${projectName}.json`);
+
+            try {
+                const response = await fetch('/api/cloud/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': state.token },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showNotification('Projekt nahrán na cloud', 'success');
+                    closeModal('cloudModal');
+                } else {
+                    showNotification('Chyba při nahrávání', 'error');
+                }
+            } catch (error) {
+                showNotification('Chyba: ' + error.message, 'error');
+            }
+        }
+
+        async function loadCloudFiles() {
+            try {
+                const response = await fetch('/api/cloud/files', {
+                    headers: { 'Authorization': state.token }
+                });
+
+                if (response.ok) {
+                    const files = await response.json();
+                    const list = document.getElementById('cloudFilesList');
+                    list.innerHTML = '';
+
+                    files.forEach(file => {
+                        const item = document.createElement('div');
+                        item.style.cssText = 'padding: 0.5rem; border-bottom: 1px solid var(--border); cursor: pointer;';
+                        item.innerHTML = `<div>${file.filename}</div><div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(file.upload_date).toLocaleDateString()}</div>`;
+                        item.addEventListener('click', () => downloadFile(file.id));
+                        list.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function downloadFile(fileId) {
+            try {
+                const response = await fetch(`/api/cloud/download/${fileId}`, {
+                    headers: { 'Authorization': state.token }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `project_${fileId}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showNotification('Soubor stažen', 'success');
+                }
+            } catch (error) {
+                showNotification('Chyba: ' + error.message, 'error');
+            }
+        }
+
+        function downloadFromCloud() {
+            // Alternativa ke stažení
+            showNotification('Otevírám cloud úložiště...', 'warning');
+            setTimeout(() => window.location.href = 'cloud.html', 1000);
+        }
+
+        function generateGitignore() {
+            const template = document.getElementById('gitTemplate').value;
+            const templates = {
+                'nodejs': 'node_modules/\n.npm\n.package-lock.json\n.DS_Store\n.env\n.env.local\ndist/\nbuild/',
+                'python': '__pycache__/\n*.py[cod]\n*$py.class\n.Python\nvenv/\nENV/\n.env\n.venv',
+                'java': 'target/\n*.class\n*.jar\n.classpath\n.project\n.settings/\n*.iml\n.idea/',
+                'custom': '# Váš vlastní .gitignore\n'
+            };
+
+            const content = templates[template] || templates.custom;
+            state.files['.gitignore'] = content;
+            openFile('.gitignore');
+            updateTabs();
+            renderFileTree();
+            closeModal('gitModal');
+            showNotification('.gitignore vytvořen', 'success');
+        }
+
+        function minifyCode() {
+            if (!state.currentFile) return;
+            let code = document.getElementById('editor').value;
+            
+            // Jednoduchá minifikace
+            code = code.replace(/\/\*[\s\S]*?\*\//g, ''); // Odebrat komentáře
+            code = code.replace(/\/\/.*$/gm, ''); // Odebrat // komentáře
+            code = code.replace(/\s+/g, ' '); // Zmenšit prázdné znaky
+            code = code.trim();
+
+            document.getElementById('editor').value = code;
+            onEditorInput();
+            showNotification('Kód minifikován', 'success');
+        }
+
+        function formatCode() {
+            if (!state.currentFile) return;
+            let code = document.getElementById('editor').value;
+            
+            // Jednoduchá formátování
+            let indented = '';
+            let indent = 0;
+            const lines = code.split('\n');
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.length > 0) {
+                    if (line.startsWith('</') || line.startsWith('}')) indent--;
+                    indented += '\t'.repeat(Math.max(0, indent)) + line + '\n';
+                    if ((line.startsWith('<') && !line.endsWith('/>')) || line.startsWith('{')) {
+                        if (!line.endsWith('>') && !line.endsWith('}')) indent++;
+                    }
+                }
+            });
+
+            document.getElementById('editor').value = indented;
+            onEditorInput();
+            showNotification('Kód formátován', 'success');
+        }
+
+        function updateSyntaxHighlight() {
+            // Highlight.js není pro textarea, takže by se použil CodeMirror v produkci
+        }
+
+        function performSearch(e) {
+            const query = e.target.value.toLowerCase();
+            const results = document.getElementById('searchResults');
+            results.innerHTML = '';
+
+            if (query.length === 0) return;
+
+            Object.keys(state.files).forEach(filename => {
+                const content = state.files[filename].toLowerCase();
+                if (content.includes(query)) {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'padding: 0.5rem; border-bottom: 1px solid var(--border); cursor: pointer; color: var(--primary);';
+                    item.textContent = filename;
+                    item.addEventListener('click', () => openFile(filename));
+                    results.appendChild(item);
+                }
+            });
+        }
+
+        function switchSidebarTab(tab) {
+            document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.sidebar-content-tab').forEach(t => t.style.display = 'none');
+            event.target.classList.add('active');
+            document.getElementById(`${tab}Tab`).style.display = 'block';
+        }
+
+        function openFindReplace() {
+            const query = prompt('Hledat:');
+            if (!query) return;
+            const replace = prompt('Nahradit s:');
+            if (replace !== null) {
+                const text = document.getElementById('editor').value;
+                document.getElementById('editor').value = text.replaceAll(query, replace);
+                onEditorInput();
+                showNotification('Nahrazeno', 'success');
+            }
+        }
+
+        function logout() {
+            if (confirm('Opravdu se odhlásit?')) {
+                localStorage.removeItem('token');
+                window.location.href = 'index.html';
+            }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('show');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notif = document.createElement('div');
+            notif.className = `notification ${type}`;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

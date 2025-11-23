@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Office - Excel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Added Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            /* Updated background to dark gray and text to light gray */
+            background: #333;
+            color: #f2f2f2;
+            min-height: 100vh;
+        }
+
+        header {
+            /* Updated header to blue rgba */
+            background: rgba(42, 90, 140, 0.3);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f2f2f2;
+            text-decoration: none;
+        }
+
+        .navigation nav {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-link {
+            /* Updated nav links to light gray */
+            color: #ccc;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+        }
+
+        .login-container {
+            position: relative;
+        }
+
+        .login-link {
+            font-size: 1.5rem;
+        }
+
+        .login-tooltip {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            /* Updated tooltip background */
+            background: #222;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            margin-top: 0.5rem;
+        }
+
+        .login-container:hover .login-tooltip {
+            display: block;
+        }
+
+        main {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .excel-container {
+            /* Updated container background to dark */
+            background: #444;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .toolbar {
+            /* Updated toolbar background to dark */
+            background: #3a3a3a;
+            padding: 1rem;
+            border-bottom: 2px solid #555;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .toolbar button {
+            /* Updated buttons to match theme */
+            background: rgba(42, 90, 140, 0.5);
+            color: #f2f2f2;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .toolbar button:hover {
+            /* Updated button hover */
+            background: rgba(42, 90, 140, 0.8);
+        }
+
+        .formula-bar {
+            /* Updated formula bar background */
+            background: #3a3a3a;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #555;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cell-label {
+            font-weight: 600;
+            color: #f2f2f2;
+            min-width: 60px;
+        }
+
+        #formula-input {
+            flex: 1;
+            padding: 0.5rem;
+            /* Updated input styles for dark mode */
+            background: #555;
+            color: #f2f2f2;
+            border: 1px solid #666;
+            border-radius: 4px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .spreadsheet-container {
+            overflow: auto;
+            max-height: 600px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            /* Updated border color */
+            border: 1px solid #555;
+            min-width: 100px;
+            height: 30px;
+            text-align: left;
+            position: relative;
+        }
+
+        th {
+            /* Updated header cell background */
+            background: #333;
+            font-weight: 600;
+            text-align: center;
+            padding: 0.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            color: #f2f2f2;
+        }
+
+        th.row-header {
+            left: 0;
+            z-index: 11;
+            min-width: 50px;
+        }
+
+        .cell {
+            padding: 0.5rem;
+            cursor: cell;
+            outline: none;
+            height: 100%;
+            width: 100%;
+            display: block;
+            /* Added text color for cells */
+            color: #f2f2f2;
+        }
+
+        .cell:focus {
+            /* Updated focus to blue rgba */
+            background: rgba(42, 90, 140, 0.3);
+            border: 2px solid #f2f2f2;
+        }
+
+        .cell.selected {
+            /* Updated selection to blue rgba */
+            background: rgba(42, 90, 140, 0.3);
+            border: 2px solid #f2f2f2;
+        }
+
+        .cell.formula {
+            /* Updated formula highlight for dark mode */
+            background: rgba(255, 255, 0, 0.1);
+        }
+
+        .stats {
+            padding: 1rem;
+            /* Updated stats background */
+            background: #3a3a3a;
+            border-top: 2px solid #555;
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .stats span {
+            font-weight: 600;
+            color: #f2f2f2;
+        }
+
+        /* Styles for Chart Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: #3a3a3a;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #555;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            color: #f2f2f2;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: #fff;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .control-group input, .control-group select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #555;
+            color: #f2f2f2;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .chart-container-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            background: #eee; /* Light background for chart visibility */
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        /* Added styles for conditional formatting modal */
+        .color-picker-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .color-picker-group input[type="color"] {
+            width: 50px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            background: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">SWARM OFFICE</a>
+        <div class="navigation">
+            <nav>
+                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
+                <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li>
+                <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li>
+                <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li>
+                <li class="nav-item login-container">
+                    <a href="Login.html" class="nav-link login-link">👨‍🚒</a>
+                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div>
+                </li>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="excel-container">
+            <div class="toolbar">
+                <button onclick="addRow()">➕ Přidat řádek</button>
+                <button onclick="addColumn()">➕ Přidat sloupec</button>
+                <button onclick="deleteRow()">❌ Smazat řádek</button>
+                <button onclick="deleteColumn()">❌ Smazat sloupec</button>
+                <button onclick="clearAll()">🗑️ Vymazat vše</button> 
+                <button onclick="openChartModal()">📊 Vytvořit graf</button>
+                <button onclick="exportToCSV()">💾 Export CSV</button>
+                <!-- Added Chart Button -->
+                <!-- Added Conditional Formatting Button -->
+                <button onclick="openConditionalModal()">🎨 Podmíněné formátování</button>
+            </div>
+
+            <div class="formula-bar">
+                <span class="cell-label" id="current-cell">A1</span>
+                <input type="text" id="formula-input" placeholder="Zadejte hodnotu nebo vzorec (např. =A1+B1)">
+            </div>
+
+            <div class="spreadsheet-container">
+                <table id="spreadsheet"></table>
+            </div>
+
+            <div class="stats">
+                <div>Počet: <span id="count-stat">0</span></div>
+                <div>Součet: <span id="sum-stat">0</span></div>
+                <div>Průměr: <span id="avg-stat">0</span></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chart Modal HTML Structure -->
+    <div id="chartModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeChartModal()">&times;</span>
+            <h2>Vytvořit graf</h2>
+            <div class="chart-controls">
+                <div class="control-group">
+                    <label>Rozsah popisků (např. A1:A5)</label>
+                    <input type="text" id="chart-labels-input" placeholder="A1:A5">
+                </div>
+                <div class="control-group">
+                    <label>Rozsah dat (např. B1:B5)</label>
+                    <input type="text" id="chart-data-input" placeholder="B1:B5">
+                </div>
+                <div class="control-group">
+                    <label>Typ grafu</label>
+                    <select id="chart-type-select">
+                        <option value="bar">Sloupcový</option>
+                        <option value="line">Čárový</option>
+                        <option value="pie">Koláčový</option>
+                        <option value="doughnut">Prstencový</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button onclick="renderChart()" style="background: rgba(42, 90, 140, 0.8); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Generovat</button>
+                </div>
+            </div>
+            <div class="chart-container-wrapper">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Added Conditional Formatting Modal -->
+    <div id="conditionalModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeConditionalModal()">&times;</span>
+            <h2>Podmíněné formátování</h2>
+            <div class="chart-controls">
+                <div class="control-group">
+                    <label>Rozsah (např. A1:C10)</label>
+                    <input type="text" id="cond-range" placeholder="A1:C10">
+                </div>
+                <div class="control-group">
+                    <label>Podmínka</label>
+                    <select id="cond-operator">
+                        <option value="gt">&gt; Větší než</option>
+                        <option value="lt">&lt; Menší než</option>
+                        <option value="eq">= Rovno</option>
+                        <option value="gte">&ge; Větší nebo rovno</option>
+                        <option value="lte">&le; Menší nebo rovno</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Hodnota</label>
+                    <input type="number" id="cond-value" placeholder="0">
+                </div>
+                <div class="control-group">
+                    <label>Barva pozadí</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cond-bg-color" value="#ffcccc">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Barva textu</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cond-text-color" value="#ff0000">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button onclick="addConditionalRule()" style="background: rgba(42, 90, 140, 0.8); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Přidat pravidlo</button>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button onclick="clearConditionalRules()" style="background: #cc4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Smazat všechna pravidla</button>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
+                <h3>Aktivní pravidla:</h3>
+                <ul id="active-rules-list" style="list-style: none; color: #ccc; padding: 0.5rem;"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rows = 20;
+        let cols = 10;
+        let selectedCell = null;
+        let cellData = {};
+        let currentChart = null;
+        let conditionalRules = [];
+
+        function initSpreadsheet() {
+            const table = document.getElementById('spreadsheet');
+            table.innerHTML = '';
+
+            // Header row
+            const headerRow = document.createElement('tr');
+            headerRow.appendChild(document.createElement('th'));
+            for (let i = 0; i < cols; i++) {
+                const th = document.createElement('th');
+                th.textContent = String.fromCharCode(65 + i);
+                headerRow.appendChild(th);
+            }
+            table.appendChild(headerRow);
+
+            // Data rows
+            for (let i = 0; i < rows; i++) {
+                const tr = document.createElement('tr');
+                const rowHeader = document.createElement('th');
+                rowHeader.textContent = i + 1;
+                rowHeader.className = 'row-header';
+                tr.appendChild(rowHeader);
+
+                for (let j = 0; j < cols; j++) {
+                    const td = document.createElement('td');
+                    const cellId = getCellId(i, j);
+                    const div = document.createElement('div');
+                    div.className = 'cell';
+                    div.contentEditable = true;
+                    div.dataset.row = i;
+                    div.dataset.col = j;
+                    div.id = cellId;
+
+                    div.addEventListener('focus', function() {
+                        selectCell(this);
+                    });
+
+                    div.addEventListener('input', function() {
+                        const cellId = getCellId(this.dataset.row, this.dataset.col);
+                        cellData[cellId] = this.textContent;
+                        document.getElementById('formula-input').value = this.textContent;
+                        recalculateAll();
+                    });
+
+                    div.addEventListener('keydown', function(e) {
+                        handleKeyNavigation(e, this);
+                    });
+
+                    td.appendChild(div);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            applyConditionalFormatting();
+        }
+
+        function getCellId(row, col) {
+            return String.fromCharCode(65 + parseInt(col)) + (parseInt(row) + 1);
+        }
+
+        function selectCell(cell) {
+            if (selectedCell) {
+                selectedCell.classList.remove('selected');
+            }
+            selectedCell = cell;
+            cell.classList.add('selected');
+            
+            const cellId = getCellId(cell.dataset.row, cell.dataset.col);
+            document.getElementById('current-cell').textContent = cellId;
+            document.getElementById('formula-input').value = cellData[cellId] || '';
+        }
+
+        function handleKeyNavigation(e, cell) {
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            let newRow = row;
+            let newCol = col;
+
+            if (e.key === 'ArrowUp' && row > 0) newRow--;
+            else if (e.key === 'ArrowDown' && row < rows - 1) newRow++;
+            else if (e.key === 'ArrowLeft' && col > 0) newCol--;
+            else if (e.key === 'ArrowRight' && col < cols - 1) newCol++;
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (row < rows - 1) newRow++;
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                if (col < cols - 1) newCol++;
+            } else {
+                return;
+            }
+
+            if (newRow !== row || newCol !== col) {
+                const newCellId = getCellId(newRow, newCol);
+                const newCell = document.getElementById(newCellId);
+                if (newCell) {
+                    newCell.focus();
+                }
+            }
+        }
+
+        document.getElementById('formula-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && selectedCell) {
+                const value = this.value;
+                const cellId = getCellId(selectedCell.dataset.row, selectedCell.dataset.col);
+                cellData[cellId] = value;
+                
+                if (value.startsWith('=')) {
+                    selectedCell.classList.add('formula');
+                    const result = evaluateFormula(value);
+                    selectedCell.textContent = result;
+                } else {
+                    selectedCell.classList.remove('formula');
+                    selectedCell.textContent = value;
+                }
+                recalculateAll();
+            }
+        });
+
+        function evaluateFormula(formula) {
+            try {
+                let expression = formula.substring(1);
+                
+                // Replace cell references with their values
+                const cellPattern = /([A-Z]+)([0-9]+)/g;
+                expression = expression.replace(cellPattern, (match, col, row) => {
+                    const cellId = col + row;
+                    const cellValue = cellData[cellId] || '0';
+                    return parseFloat(cellValue) || 0;
+                });
+
+                // Support basic functions
+                expression = expression.replace(/SUM$$([^)]+)$$/gi, (match, range) => {
+                    const cells = parseRange(range);
+                    return cells.reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+                });
+
+                expression = expression.replace(/AVG$$([^)]+)$$/gi, (match, range) => {
+                    const cells = parseRange(range);
+                    const sum = cells.reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+                    return cells.length > 0 ? sum / cells.length : 0;
+                });
+
+                const result = eval(expression);
+                return isNaN(result) ? '#ERROR' : result;
+            } catch (e) {
+                return '#ERROR';
+            }
+        }
+
+        function parseRange(range) {
+            const values = [];
+            const parts = range.split(':');
+            if (parts.length === 2) {
+                const start = parts[0].trim();
+                const end = parts[1].trim();
+                // Simple range parsing
+                for (let key in cellData) {
+                    if (key >= start && key <= end) {
+                        values.push(cellData[key]);
+                    }
+                }
+            }
+            return values;
+        }
+
+        function recalculateAll() {
+            for (let key in cellData) {
+                if (cellData[key] && cellData[key].startsWith('=')) {
+                    const cell = document.getElementById(key);
+                    if (cell) {
+                        const result = evaluateFormula(cellData[key]);
+                        cell.textContent = result;
+                    }
+                }
+            }
+            updateStats();
+            applyConditionalFormatting();
+        }
+
+        function updateStats() {
+            let count = 0;
+            let sum = 0;
+            let values = [];
+
+            for (let key in cellData) {
+                const val = parseFloat(cellData[key]);
+                if (!isNaN(val)) {
+                    count++;
+                    sum += val;
+                    values.push(val);
+                }
+            }
+
+            document.getElementById('count-stat').textContent = count;
+            document.getElementById('sum-stat').textContent = sum.toFixed(2);
+            document.getElementById('avg-stat').textContent = count > 0 ? (sum / count).toFixed(2) : 0;
+        }
+
+        function addRow() {
+            rows++;
+            initSpreadsheet();
+        }
+
+        function addColumn() {
+            if (cols < 26) {
+                cols++;
+                initSpreadsheet();
+            }
+        }
+
+        function deleteRow() {
+            if (rows > 1) {
+                rows--;
+                initSpreadsheet();
+            }
+        }
+
+        function deleteColumn() {
+            if (cols > 1) {
+                cols--;
+                initSpreadsheet();
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Opravdu chcete vymazat všechna data?')) {
+                cellData = {};
+                initSpreadsheet();
+            }
+        }
+
+        function exportToCSV() {
+            let csv = '';
+            for (let i = 0; i < rows; i++) {
+                const rowData = [];
+                for (let j = 0; j < cols; j++) {
+                    const cellId = getCellId(i, j);
+                    rowData.push(cellData[cellId] || '');
+                }
+                csv += rowData.join(',') + '\n';
+            }
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'spreadsheet.csv';
+            a.click();
+        }
+
+        function openChartModal() {
+            document.getElementById('chartModal').style.display = 'block';
+        }
+
+        function closeChartModal() {
+            document.getElementById('chartModal').style.display = 'none';
+        }
+
+        function openConditionalModal() {
+            document.getElementById('conditionalModal').style.display = 'block';
+            renderRulesList();
+        }
+
+        function closeConditionalModal() {
+            document.getElementById('conditionalModal').style.display = 'none';
+        }
+
+        function addConditionalRule() {
+            const range = document.getElementById('cond-range').value.toUpperCase();
+            const operator = document.getElementById('cond-operator').value;
+            const value = parseFloat(document.getElementById('cond-value').value);
+            const bgColor = document.getElementById('cond-bg-color').value;
+            const textColor = document.getElementById('cond-text-color').value;
+
+            if (!range || isNaN(value)) {
+                alert('Vyplňte platný rozsah a číselnou hodnotu.');
+                return;
+            }
+
+            conditionalRules.push({
+                range,
+                operator,
+                value,
+                bgColor,
+                textColor
+            });
+
+            renderRulesList();
+            applyConditionalFormatting();
+            // Don't close modal so user can add more rules or see list
+            // closeConditionalModal(); 
+        }
+
+        function clearConditionalRules() {
+            if (confirm('Opravdu smazat všechna pravidla?')) {
+                conditionalRules = [];
+                renderRulesList();
+                applyConditionalFormatting();
+            }
+        }
+
+        function renderRulesList() {
+            const list = document.getElementById('active-rules-list');
+            list.innerHTML = '';
+            if (conditionalRules.length === 0) {
+                list.innerHTML = '<li>Žádná aktivní pravidla</li>';
+                return;
+            }
+            conditionalRules.forEach((rule, index) => {
+                const li = document.createElement('li');
+                li.style.marginBottom = '5px';
+                li.innerHTML = `
+                    <span style="display:inline-block; width: 20px; height: 20px; background:${rule.bgColor}; vertical-align:middle; margin-right:5px; border:1px solid #fff;"></span>
+                    <strong>${rule.range}</strong>: Hodnota 
+                    ${rule.operator === 'gt' ? '>' : rule.operator === 'lt' ? '<' : rule.operator === 'eq' ? '=' : rule.operator === 'gte' ? '>=' : '<='} 
+                    ${rule.value}
+                    <button onclick="removeRule(${index})" style="margin-left:10px; background:none; border:none; color:#ff6666; cursor:pointer;">🗑️</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function removeRule(index) {
+            conditionalRules.splice(index, 1);
+            renderRulesList();
+            applyConditionalFormatting();
+        }
+
+        function applyConditionalFormatting() {
+            // First, reset all cells to default style (but keep selection logic separate if possible, 
+            // or simpler: just loop all cells and clear specific style properties)
+            // Since we are modifying inline styles, we can just clear them.
+            const allCells = document.querySelectorAll('.cell');
+            allCells.forEach(cell => {
+                cell.style.backgroundColor = '';
+                cell.style.color = '';
+            });
+
+            // Apply rules
+            conditionalRules.forEach(rule => {
+                const keys = parseRangeKeys(rule.range);
+                keys.forEach(key => {
+                    const cell = document.getElementById(key);
+                    if (cell) {
+                        const cellValue = parseFloat(cell.textContent);
+                        if (!isNaN(cellValue)) {
+                            let match = false;
+                            switch (rule.operator) {
+                                case 'gt': match = cellValue > rule.value; break;
+                                case 'lt': match = cellValue < rule.value; break;
+                                case 'eq': match = cellValue === rule.value; break;
+                                case 'gte': match = cellValue >= rule.value; break;
+                                case 'lte': match = cellValue <= rule.value; break;
+                            }
+
+                            if (match) {
+                                cell.style.backgroundColor = rule.bgColor;
+                                cell.style.color = rule.textColor;
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const chartModal = document.getElementById('chartModal');
+            const condModal = document.getElementById('conditionalModal');
+            if (event.target == chartModal) {
+                chartModal.style.display = "none";
+            }
+            if (event.target == condModal) {
+                condModal.style.display = "none";
+            }
+        }
+
+        // Helper function to parse ranges like "A1:A5" into keys ["A1", "A2", ...]
+        function parseRangeKeys(rangeStr) {
+            const keys = [];
+            if (!rangeStr.includes(':')) {
+                keys.push(rangeStr.trim());
+                return keys;
+            }
+            
+            const parts = rangeStr.split(':');
+            const start = parts[0].trim();
+            const end = parts[1].trim();
+            
+            const startMatch = start.match(/([A-Z]+)([0-9]+)/);
+            const endMatch = end.match(/([A-Z]+)([0-9]+)/);
+
+            if (!startMatch || !endMatch) return [];
+
+            const startCol = startMatch[1];
+            const startRow = parseInt(startMatch[2]);
+            const endCol = endMatch[1];
+            const endRow = parseInt(endMatch[2]);
+
+            // Logic for vertical range (same column)
+            if (startCol === endCol) {
+                for (let r = startRow; r <= endRow; r++) {
+                    keys.push(startCol + r);
+                }
+            }
+            // Logic for horizontal range (same row)
+            else if (startRow === endRow) {
+                const startColCode = startCol.charCodeAt(0);
+                const endColCode = endCol.charCodeAt(0);
+                for (let c = startColCode; c <= endColCode; c++) {
+                    keys.push(String.fromCharCode(c) + startRow);
+                }
+            }
+            
+            return keys;
+        }
+
+        function renderChart() {
+            const labelRange = document.getElementById('chart-labels-input').value.toUpperCase();
+            const dataRange = document.getElementById('chart-data-input').value.toUpperCase();
+            const type = document.getElementById('chart-type-select').value;
+            
+            if (!labelRange || !dataRange) {
+                alert('Prosím vyplňte rozsah popisků i dat.');
+                return;
+            }
+
+            const labelKeys = parseRangeKeys(labelRange);
+            const dataKeys = parseRangeKeys(dataRange);
+
+            if (labelKeys.length === 0 || dataKeys.length === 0) {
+                alert('Neplatný rozsah. Použijte formát jako A1:A5.');
+                return;
+            }
+
+            const labels = labelKeys.map(key => cellData[key] || key);
+            const data = dataKeys.map(key => {
+                const val = parseFloat(cellData[key]);
+                return isNaN(val) ? 0 : val;
+            });
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Generate colors based on theme
+            const backgroundColors = data.map(() => 
+                `rgba(${Math.floor(Math.random()*100 + 42)}, ${Math.floor(Math.random()*100 + 90)}, ${Math.floor(Math.random()*100 + 140)}, 0.7)`
+            );
+
+            const mainColor = 'rgba(42, 90, 140, 1)';
+            const mainBg = 'rgba(42, 90, 140, 0.4)';
+
+            currentChart = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hodnoty',
+                        data: data,
+                        backgroundColor: type === 'line' ? mainBg : backgroundColors,
+                        borderColor: type === 'line' ? mainColor : backgroundColors.map(c => c.replace('0.7', '1')),
+                        borderWidth: 1,
+                        fill: type === 'line'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            display: type !== 'pie' && type !== 'doughnut'
+                        },
+                        x: {
+                            display: type !== 'pie' && type !== 'doughnut'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize on load
+        initSpreadsheet();
+    </script>
+</body>
+</html>

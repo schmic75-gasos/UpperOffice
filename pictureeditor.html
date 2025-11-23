@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ImagePro - Advanced Image Editor</title>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -484,6 +485,138 @@
             cursor: pointer;
         }
 
+        /* Collaboration UI Styles */
+        .collaboration-ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 300px;
+        }
+
+        body.dark-mode .collaboration-ui {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .collaboration-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .collaborators-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .collaborator-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .collaborator-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .collaborator-cursor {
+            position: absolute;
+            z-index: 100;
+            pointer-events: none;
+            transition: all 0.1s ease;
+        }
+
+        .cursor-name {
+            background: var(--primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+
+        .collaboration-mode-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .read-only-badge {
+            background: var(--warning);
+        }
+
+        /* Modal updates */
+        .share-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        body.dark-mode .share-option {
+            border-color: var(--border-dark);
+        }
+
+        .share-option:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .share-option.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .share-option input[type="radio"] {
+            margin: 0;
+        }
+
+        .option-description {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        body.dark-mode .option-description {
+            color: var(--text-muted-dark);
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .sidebar {
@@ -652,6 +785,25 @@
             font-weight: 600;
             z-index: 10;
         }
+        /* Share Modal Styles */
+        .share-modal-content {
+            background: var(--bg-light);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        body.dark-mode .share-modal-content {
+            background: var(--bg-secondary-dark);
+        }
+
+        #publicUrlInput {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -667,6 +819,7 @@
             <button class="btn" id="downloadBtn">⬇ Download</button>
             <button class="btn" id="saveToCloudBtn">☁️ Save to Cloud</button>
             <button class="btn" id="loadFromCloudBtn">☁️ Load from Cloud</button>
+            <button class="btn" id="sharePublicBtn">🔗 Share Publicly</button>
         </div>
     </div>
 
@@ -834,6 +987,12 @@
         let history = [];
         let historyIndex = -1;
 
+        // Socket.IO a collaboration state
+        let socket = null;
+        let collaborationSession = null;
+        let activeCollaborators = new Map();
+        let userCursors = new Map();
+
         // Image filters
         const filters = {
             brightness: 0,
@@ -852,6 +1011,7 @@
             updateLanguage();
             setupTheme();
             createCanvas();
+            initializeCollaboration();
         }
 
         function createCanvas() {
@@ -860,6 +1020,329 @@
             ctx = canvas.getContext('2d', { willReadFrequently: true });
             canvas.style.display = 'none';
             container.appendChild(canvas);
+        }
+
+        // Collaboration functions
+        function initializeCollaboration() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const publicToken = urlParams.get('publicToken');
+            
+            if (publicToken) {
+                checkCollaborationSession(publicToken);
+            }
+        }
+
+        async function checkCollaborationSession(publicToken) {
+            try {
+                const response = await fetch(`/api/collaboration/session/${publicToken}`);
+                if (response.ok) {
+                    const session = await response.json();
+                    collaborationSession = session;
+                    joinCollaborationSession(publicToken, session.share_mode);
+                    showCollaborationUI(session);
+                }
+            } catch (error) {
+                console.log('No collaboration session found:', error);
+            }
+        }
+
+        function joinCollaborationSession(publicToken, shareMode) {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Connected to collaboration server');
+                socket.emit('join_collaboration', {
+                    public_token: publicToken,
+                    user_token: localStorage.token
+                });
+            });
+            
+            socket.on('session_info', (data) => {
+                console.log('Joined session:', data);
+                updateCollaborationMode(data.share_mode);
+            });
+            
+            socket.on('user_joined', (data) => {
+                addCollaborator(data.username, data.socket_id);
+                updateCollaboratorsList(data.collaborators);
+                showStatus(`User ${data.username} joined the collaboration`, 'success');
+            });
+            
+            socket.on('user_left', (data) => {
+                removeCollaborator(data.socket_id);
+                showStatus(`User ${data.username} left the collaboration`, 'warning');
+            });
+            
+            socket.on('canvas_update', (data) => {
+                applyRemoteCanvasOperation(data.operation, data.username);
+            });
+            
+            socket.on('cursor_update', (data) => {
+                updateUserCursor(data.socket_id, data.position, data.username);
+            });
+            
+            socket.on('error', (data) => {
+                showStatus(`Collaboration error: ${data.message}`, 'warning');
+            });
+            
+            setupCursorTracking(publicToken, shareMode);
+            setupCanvasTracking(publicToken, shareMode);
+        }
+
+        function setupCursorTracking(publicToken, shareMode) {
+            if (shareMode !== 'read_write') return;
+            
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return;
+            
+            let lastSentPosition = null;
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const position = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top,
+                    relativeX: (e.clientX - rect.left) / rect.width,
+                    relativeY: (e.clientY - rect.top) / rect.height
+                };
+                
+                if (!lastSentPosition || 
+                    Math.abs(position.x - lastSentPosition.x) > 5 || 
+                    Math.abs(position.y - lastSentPosition.y) > 5) {
+                    
+                    socket.emit('cursor_move', {
+                        public_token: publicToken,
+                        position: position,
+                        username: getCurrentUsername()
+                    });
+                    
+                    lastSentPosition = position;
+                }
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                socket.emit('cursor_move', {
+                    public_token: publicToken,
+                    position: null,
+                    username: getCurrentUsername()
+                });
+            });
+        }
+
+        function setupCanvasTracking(publicToken, shareMode) {
+            if (shareMode !== 'read_write') return;
+            
+            const sliders = ['brightness', 'contrast', 'saturation', 'hue', 'blur'];
+            sliders.forEach(slider => {
+                const element = document.getElementById(slider + 'Slider');
+                if (element) {
+                    const originalHandler = element.oninput;
+                    element.oninput = function(e) {
+                        if (originalHandler) originalHandler(e);
+                        sendCanvasOperation({
+                            type: 'filter',
+                            filter: slider,
+                            value: filters[slider],
+                            filters: {...filters}
+                        });
+                    };
+                }
+            });
+            
+            const originalRotate = document.getElementById('rotateBtn').onclick;
+            document.getElementById('rotateBtn').onclick = function(e) {
+                if (originalRotate) originalRotate(e);
+                sendCanvasOperation({
+                    type: 'transform',
+                    operation: 'rotate',
+                    degrees: 90
+                });
+            };
+            
+            const originalFlipH = document.getElementById('flipHBtn').onclick;
+            document.getElementById('flipHBtn').onclick = function(e) {
+                if (originalFlipH) originalFlipH(e);
+                sendCanvasOperation({
+                    type: 'transform',
+                    operation: 'flip',
+                    direction: 'horizontal'
+                });
+            };
+            
+            const originalFlipV = document.getElementById('flipVBtn').onclick;
+            document.getElementById('flipVBtn').onclick = function(e) {
+                if (originalFlipV) originalFlipV(e);
+                sendCanvasOperation({
+                    type: 'transform',
+                    operation: 'flip',
+                    direction: 'vertical'
+                });
+            };
+        }
+
+        function sendCanvasOperation(operation) {
+            if (!socket || !collaborationSession) return;
+            
+            socket.emit('canvas_operation', {
+                public_token: collaborationSession.public_token,
+                operation: operation,
+                username: getCurrentUsername()
+            });
+        }
+
+        function applyRemoteCanvasOperation(operation, username) {
+            if (operation.type === 'filter') {
+                if (operation.filters) {
+                    Object.assign(filters, operation.filters);
+                    applyFilters();
+                    updateSliderDisplays();
+                }
+            } else if (operation.type === 'transform') {
+                if (operation.operation === 'rotate') {
+                    rotateImage(operation.degrees);
+                } else if (operation.operation === 'flip') {
+                    flipImage(operation.direction);
+                }
+                saveToHistory();
+            }
+            
+            showStatus(`Applied change from ${username}`, 'success');
+        }
+
+        function updateUserCursor(socketId, position, username) {
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return;
+            
+            let cursor = userCursors.get(socketId);
+            
+            if (!position) {
+                if (cursor) {
+                    cursor.remove();
+                    userCursors.delete(socketId);
+                }
+                return;
+            }
+            
+            if (!cursor) {
+                cursor = document.createElement('div');
+                cursor.className = 'collaborator-cursor';
+                cursor.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 0L0 20h4l2-8 4 2-2 8h2l2-8 4 2-2 8h2L10 0z"/>
+                    </svg>
+                    <div class="cursor-name">${username}</div>
+                `;
+                document.getElementById('canvasContainer').appendChild(cursor);
+                userCursors.set(socketId, cursor);
+            }
+            
+            const rect = canvas.getBoundingClientRect();
+            const absoluteX = rect.left + (position.relativeX * rect.width);
+            const absoluteY = rect.top + (position.relativeY * rect.height);
+            
+            cursor.style.left = absoluteX + 'px';
+            cursor.style.top = absoluteY + 'px';
+        }
+
+        function addCollaborator(username, socketId) {
+            activeCollaborators.set(socketId, username);
+            updateCollaboratorsList();
+        }
+
+        function removeCollaborator(socketId) {
+            activeCollaborators.delete(socketId);
+            const cursor = userCursors.get(socketId);
+            if (cursor) {
+                cursor.remove();
+                userCursors.delete(socketId);
+            }
+            updateCollaboratorsList();
+        }
+
+        function updateCollaboratorsList(collaborators = null) {
+            const list = document.getElementById('collaboratorsList');
+            if (!list) return;
+            
+            if (collaborators) {
+                activeCollaborators.clear();
+                collaborators.forEach(collab => {
+                    activeCollaborators.set('current', collab.username);
+                });
+            }
+            
+            list.innerHTML = '';
+            activeCollaborators.forEach((username, socketId) => {
+                const item = document.createElement('div');
+                item.className = 'collaborator-item';
+                item.innerHTML = `
+                    <div class="collaborator-avatar">${username.charAt(0).toUpperCase()}</div>
+                    <div>
+                        <div style="font-weight: 600;">${username}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Online</div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function showCollaborationUI(session) {
+            const collaborationUI = document.createElement('div');
+            collaborationUI.className = 'collaboration-ui';
+            collaborationUI.innerHTML = `
+                <div class="collaboration-header">
+                    <span>👥 Real-time Collaboration</span>
+                    <div style="font-size: 0.75rem; background: ${session.share_mode === 'read_write' ? 'var(--success)' : 'var(--warning)'}; 
+                              color: white; padding: 2px 6px; border-radius: 8px;">
+                        ${session.share_mode === 'read_write' ? 'Read & Write' : 'Read Only'}
+                    </div>
+                </div>
+                <div>Owner: <strong>${session.owner_name}</strong></div>
+                <div style="font-size: 0.875rem; margin: 8px 0;">Active collaborators:</div>
+                <div class="collaborators-list" id="collaboratorsList">
+                    <div class="collaborator-item">
+                        <div class="collaborator-avatar">${getCurrentUsername().charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div style="font-weight: 600;">${getCurrentUsername()}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">You</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('canvasContainer').appendChild(collaborationUI);
+            
+            const modeBadge = document.createElement('div');
+            modeBadge.className = `collaboration-mode-badge ${session.share_mode === 'read_only' ? 'read-only-badge' : ''}`;
+            modeBadge.textContent = session.share_mode === 'read_write' ? 'LIVE COLLABORATION' : 'VIEW ONLY';
+            document.getElementById('canvasContainer').appendChild(modeBadge);
+        }
+
+        function updateCollaborationMode(mode) {
+            const badge = document.querySelector('.collaboration-mode-badge');
+            if (badge) {
+                badge.textContent = mode === 'read_write' ? 'LIVE COLLABORATION' : 'VIEW ONLY';
+                badge.className = `collaboration-mode-badge ${mode === 'read_only' ? 'read-only-badge' : ''}`;
+            }
+            
+            const controls = document.querySelectorAll('#adjustmentsPanel input, #adjustmentsPanel button, .tool-btn');
+            if (mode === 'read_only') {
+                controls.forEach(control => {
+                    control.disabled = true;
+                    control.style.opacity = '0.6';
+                });
+            } else {
+                controls.forEach(control => {
+                    control.disabled = false;
+                    control.style.opacity = '1';
+                });
+            }
+        }
+
+        function getCurrentUsername() {
+            if (localStorage.token) {
+                return 'User';
+            }
+            return 'Anonymous';
         }
 
         function setupEventListeners() {
@@ -968,6 +1451,11 @@
             // History
             document.getElementById('undoBtn').addEventListener('click', undo);
             document.getElementById('redoBtn').addEventListener('click', redo);
+
+            // Cloud functionality
+            document.getElementById('saveToCloudBtn').addEventListener('click', saveToCloud);
+            document.getElementById('loadFromCloudBtn').addEventListener('click', openCloudModal);
+            document.getElementById('sharePublicBtn').addEventListener('click', sharePublicly);
         }
 
         function handleImageUpload(e) {
@@ -1206,288 +1694,469 @@
             }, 3000);
         }
 
+        function updateSliderDisplays() {
+            document.getElementById('brightnessValue').textContent = filters.brightness + '%';
+            document.getElementById('contrastValue').textContent = filters.contrast + '%';
+            document.getElementById('saturationValue').textContent = filters.saturation + '%';
+            document.getElementById('hueValue').textContent = filters.hue + '°';
+            document.getElementById('blurValue').textContent = filters.blur + 'px';
+            
+            document.getElementById('brightnessSlider').value = filters.brightness;
+            document.getElementById('contrastSlider').value = filters.contrast;
+            document.getElementById('saturationSlider').value = filters.saturation;
+            document.getElementById('hueSlider').value = filters.hue;
+            document.getElementById('blurSlider').value = filters.blur;
+        }
+
         // Start
         init();
         if (isDarkMode) setupTheme();
-    </script>
-    <script>
-        // Cloud functionality for image editor
-document.getElementById('saveToCloudBtn').addEventListener('click', saveToCloud);
 
-function saveToCloud() {
-    if (!canvas) {
-        showStatus('No image to save', 'warning');
-        return;
-    }
+        // Cloud functionality
+        let currentCloudFileId = null;
 
-    if (!localStorage.token) {
-        showStatus('Please login to save to cloud', 'warning');
-        return;
-    }
-
-    canvas.toBlob(async (blob) => {
-        const file = new File([blob], 'edited-image.png', { type: 'image/png' });
-        
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch('/api/cloud/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': localStorage.token
-                },
-                body: formData
-            });
-
-            const result = await response.json();
-            
-            if (response.ok) {
-                showStatus('Image saved to cloud successfully!', 'success');
-            } else {
-                showStatus('Error: ' + result.error, 'warning');
-            }
-        } catch (error) {
-            showStatus('Error uploading file: ' + error.message, 'warning');
-        }
-    }, 'image/png');
-}
-    </script>
-    <script>
-        // Cloud import functionality
-document.getElementById('loadFromCloudBtn').addEventListener('click', openCloudModal);
-
-function openCloudModal() {
-    if (!localStorage.token) {
-        showStatus('Please login to access cloud files', 'warning');
-        return;
-    }
-
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'modal show';
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0;">Load Image from Cloud</h2>
-                <button class="btn-icon" id="closeCloudModal" style="background: transparent;">✕</button>
-            </div>
-            <div id="cloudFilesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; max-height: 400px; overflow-y: auto;"></div>
-            <div style="margin-top: 20px; text-align: center; color: var(--text-muted);" id="cloudStatus"></div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    document.getElementById('closeCloudModal').addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-
-    loadCloudImages();
-}
-
-async function loadCloudImages() {
-    const statusEl = document.getElementById('cloudStatus');
-    const gridEl = document.getElementById('cloudFilesGrid');
-    
-    statusEl.textContent = 'Loading images...';
-    
-    try {
-        const response = await fetch('/api/cloud/files', {
-            headers: {
-                'Authorization': localStorage.token
-            }
-        });
-
-        if (response.ok) {
-            const files = await response.json();
-            const imageFiles = files.filter(file => file.type === 'image');
-            
-            if (imageFiles.length === 0) {
-                statusEl.textContent = 'No images found in your cloud storage.';
+        async function saveToCloud() {
+            if (!canvas) {
+                showStatus('No image to save', 'warning');
                 return;
             }
 
-            gridEl.innerHTML = '';
-            statusEl.textContent = `Found ${imageFiles.length} images`;
-
-            imageFiles.forEach(file => {
-                const fileCard = document.createElement('div');
-                fileCard.className = 'cloud-file-card';
-                fileCard.style.cssText = `
-                    background: var(--bg-light);
-                    border-radius: 8px;
-                    padding: 12px;
-                    text-align: center;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    border: 2px solid transparent;
-                `;
-                
-                fileCard.innerHTML = `
-                    <div style="width: 100px; height: 100px; margin: 0 auto 8px; background: var(--bg-secondary-light); border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                        <img src="/api/cloud/download/${file.id}" alt="${file.filename}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                    </div>
-                    <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.filename}</div>
-                    <div style="font-size: 10px; color: var(--text-muted);">${new Date(file.upload_date).toLocaleDateString()}</div>
-                `;
-
-                fileCard.addEventListener('click', () => {
-                    loadImageFromCloud(file.id);
-                    document.body.removeChild(document.querySelector('.modal'));
-                });
-
-                fileCard.addEventListener('mouseenter', () => {
-                    fileCard.style.borderColor = 'var(--primary)';
-                    fileCard.style.transform = 'translateY(-2px)';
-                });
-
-                fileCard.addEventListener('mouseleave', () => {
-                    fileCard.style.borderColor = 'transparent';
-                    fileCard.style.transform = 'translateY(0)';
-                });
-
-                gridEl.appendChild(fileCard);
-            });
-        } else {
-            statusEl.textContent = 'Error loading cloud files';
-        }
-    } catch (error) {
-        statusEl.textContent = 'Error: ' + error.message;
-    }
-}
-
-async function loadImageFromCloud(fileId) {
-    showStatus('Loading image from cloud...', 'success');
-    
-    try {
-        const response = await fetch(`/api/cloud/download/${fileId}`, {
-            headers: {
-                'Authorization': localStorage.token
+            if (!localStorage.token) {
+                showStatus('Please login to save to cloud', 'warning');
+                return;
             }
-        });
 
-        if (response.ok) {
-            const blob = await response.blob();
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], 'edited-image.png', { type: 'image/png' });
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch('/api/cloud/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': localStorage.token
+                        },
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        currentCloudFileId = result.file_id;
+                        showStatus('Image saved to cloud successfully!', 'success');
+                    } else {
+                        showStatus('Error: ' + result.error, 'warning');
+                    }
+                } catch (error) {
+                    showStatus('Error uploading file: ' + error.message, 'warning');
+                }
+            }, 'image/png');
+        }
+
+        function openCloudModal() {
+            if (!localStorage.token) {
+                showStatus('Please login to access cloud files', 'warning');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">Load Image from Cloud</h2>
+                        <button class="btn-icon" id="closeCloudModal" style="background: transparent;">✕</button>
+                    </div>
+                    <div id="cloudFilesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; max-height: 400px; overflow-y: auto;"></div>
+                    <div style="margin-top: 20px; text-align: center; color: var(--text-muted);" id="cloudStatus"></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('closeCloudModal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            loadCloudImages();
+        }
+
+        async function loadCloudImages() {
+            const statusEl = document.getElementById('cloudStatus');
+            const gridEl = document.getElementById('cloudFilesGrid');
+            
+            statusEl.textContent = 'Loading images...';
+            
+            try {
+                const response = await fetch('/api/cloud/files', {
+                    headers: {
+                        'Authorization': localStorage.token
+                    }
+                });
+
+                if (response.ok) {
+                    const files = await response.json();
+                    const imageFiles = files.filter(file => file.type === 'image');
+                    
+                    if (imageFiles.length === 0) {
+                        statusEl.textContent = 'No images found in your cloud storage.';
+                        return;
+                    }
+
+                    gridEl.innerHTML = '';
+                    statusEl.textContent = `Found ${imageFiles.length} images`;
+
+                    imageFiles.forEach(file => {
+                        const fileCard = document.createElement('div');
+                        fileCard.className = 'cloud-file-card';
+                        fileCard.style.cssText = `
+                            background: var(--bg-light);
+                            border-radius: 8px;
+                            padding: 12px;
+                            text-align: center;
+                            cursor: pointer;
+                            transition: all 0.3s;
+                            border: 2px solid transparent;
+                        `;
+                        
+                        fileCard.innerHTML = `
+                            <div style="width: 100px; height: 100px; margin: 0 auto 8px; background: var(--bg-secondary-light); border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                <img src="/api/cloud/download/${file.id}" alt="${file.filename}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                            <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.filename}</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">${new Date(file.upload_date).toLocaleDateString()}</div>
+                        `;
+
+                        fileCard.addEventListener('click', () => {
+                            loadImageFromCloud(file.id);
+                            document.body.removeChild(document.querySelector('.modal'));
+                        });
+
+                        fileCard.addEventListener('mouseenter', () => {
+                            fileCard.style.borderColor = 'var(--primary)';
+                            fileCard.style.transform = 'translateY(-2px)';
+                        });
+
+                        fileCard.addEventListener('mouseleave', () => {
+                            fileCard.style.borderColor = 'transparent';
+                            fileCard.style.transform = 'translateY(0)';
+                        });
+
+                        gridEl.appendChild(fileCard);
+                    });
+                } else {
+                    statusEl.textContent = 'Error loading cloud files';
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function loadImageFromCloud(fileId) {
+            showStatus('Loading image from cloud...', 'success');
+            
+            try {
+                const response = await fetch(`/api/cloud/download/${fileId}`, {
+                    headers: {
+                        'Authorization': localStorage.token
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        originalImage = img;
+                        editedImage = new Image();
+                        editedImage.src = img.src;
+
+                        // Setup canvas
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        // Show canvas, hide upload zone
+                        document.getElementById('uploadZone').style.display = 'none';
+                        canvas.style.display = 'block';
+                        document.getElementById('adjustmentsPanel').style.display = 'block';
+                        
+                        // Draw image
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Update info
+                        document.getElementById('imageResolution').textContent = `${img.width} × ${img.height}px`;
+                        document.getElementById('imageSize').textContent = `${(blob.size / 1024).toFixed(2)} KB`;
+                        document.getElementById('imageFormat').textContent = 'PNG';
+                        
+                        // Reset filters
+                        resetFilters();
+                        
+                        // Clear history
+                        history = [];
+                        historyIndex = -1;
+                        saveToHistory();
+                        
+                        // Set current cloud file ID for sharing
+                        currentCloudFileId = fileId;
+                        
+                        showStatus('Image loaded from cloud!', 'success');
+                    };
+                    
+                    img.src = URL.createObjectURL(blob);
+                } else {
+                    showStatus('Error loading image from cloud', 'warning');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'warning');
+            }
+        }
+
+        // Load image from public token
+        function loadImageFromPublicToken(publicToken) {
+            showStatus('Loading image from public link...', 'success');
+            
             const img = new Image();
+            img.crossOrigin = "anonymous";
             
             img.onload = function() {
+                const badge = document.createElement('div');
+                badge.className = 'public-image-badge';
+                badge.textContent = 'PUBLIC IMAGE';
+                document.getElementById('canvasContainer').appendChild(badge);
+                
                 originalImage = img;
                 editedImage = new Image();
                 editedImage.src = img.src;
 
-                // Setup canvas
                 canvas.width = img.width;
                 canvas.height = img.height;
                 
-                // Show canvas, hide upload zone
                 document.getElementById('uploadZone').style.display = 'none';
                 canvas.style.display = 'block';
                 document.getElementById('adjustmentsPanel').style.display = 'block';
                 
-                // Draw image
                 ctx.drawImage(img, 0, 0);
                 
-                // Update info
                 document.getElementById('imageResolution').textContent = `${img.width} × ${img.height}px`;
-                document.getElementById('imageSize').textContent = `${(blob.size / 1024).toFixed(2)} KB`;
-                document.getElementById('imageFormat').textContent = 'PNG';
+                document.getElementById('imageSize').textContent = 'Public Image';
+                document.getElementById('imageFormat').textContent = 'Public';
                 
-                // Reset filters
                 resetFilters();
                 
-                // Clear history
                 history = [];
                 historyIndex = -1;
                 saveToHistory();
                 
-                showStatus('Image loaded from cloud!', 'success');
+                showStatus('Public image loaded!', 'success');
             };
             
-            img.src = URL.createObjectURL(blob);
-        } else {
-            showStatus('Error loading image from cloud', 'warning');
+            img.onerror = function() {
+                showStatus('Error loading public image', 'warning');
+            };
+            
+            img.src = `/api/cloud/public/image/${publicToken}?t=${Date.now()}`;
         }
-    } catch (error) {
-        showStatus('Error: ' + error.message, 'warning');
-    }
-}
-    </script>
-    <script>
- // Check for cloud file in URL parameters - ONLY if user is logged in
-const urlParams = new URLSearchParams(window.location.search);
-const cloudFileId = urlParams.get('cloudFile');
-if (cloudFileId && localStorage.token) {
-    // User is logged in and wants to load from their cloud storage
-    loadImageFromCloud(cloudFileId);
-} else if (cloudFileId && !localStorage.token) {
-    // User is not logged in but tried to access cloud file - show message
-    showStatus('Please login to access cloud files', 'warning');
-}
-    </script>
-    <script>
-        // Load image from public token
-function loadImageFromPublicToken(publicToken) {
-    showStatus('Loading image from public link...', 'success');
-    
-    // Load the actual image directly
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    
-    img.onload = function() {
-        // Add public badge
-        const badge = document.createElement('div');
-        badge.className = 'public-image-badge';
-        badge.textContent = 'PUBLIC IMAGE';
-        document.getElementById('canvasContainer').appendChild(badge);
-        
-        originalImage = img;
-        editedImage = new Image();
-        editedImage.src = img.src;
 
-        // Setup canvas
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        // Show canvas, hide upload zone
-        document.getElementById('uploadZone').style.display = 'none';
-        canvas.style.display = 'block';
-        document.getElementById('adjustmentsPanel').style.display = 'block';
-        
-        // Draw image
-        ctx.drawImage(img, 0, 0);
-        
-        // Update info
-        document.getElementById('imageResolution').textContent = `${img.width} × ${img.height}px`;
-        document.getElementById('imageSize').textContent = 'Public Image';
-        document.getElementById('imageFormat').textContent = 'Public';
-        
-        // Reset filters
-        resetFilters();
-        
-        // Clear history
-        history = [];
-        historyIndex = -1;
-        saveToHistory();
-        
-        showStatus('Public image loaded!', 'success');
-    };
-    
-    img.onerror = function() {
-        showStatus('Error loading public image', 'warning');
-    };
-    
-    // Load image from the public endpoint
-    img.src = `/api/cloud/public/image/${publicToken}?t=${Date.now()}`;
-}
+        // Share functionality
+        async function sharePublicly() {
+            if (!localStorage.token) {
+                showStatus('Please login to share files publicly', 'warning');
+                return;
+            }
 
-// Check for public token in URL on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const publicToken = urlParams.get('publicToken');
-    if (publicToken) {
-        loadImageFromPublicToken(publicToken);
-    }
-});
+            const cloudFileId = currentCloudFileId;
+
+            if (!cloudFileId) {
+                showStatus('Please save the image to cloud first or load from cloud', 'warning');
+                return;
+            }
+
+            showShareModeModal(cloudFileId);
+        }
+
+        function showShareModeModal(fileId) {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">🎉 Share Image</h2>
+                        <button class="btn-icon" id="closeShareModal" style="background: transparent;">✕</button>
+                    </div>
+                    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+                        Choose how you want to share this image:
+                    </p>
+                    
+                    <div class="share-option" onclick="selectShareOption(this, 'read_only')">
+                        <input type="radio" name="shareMode" value="read_only" checked>
+                        <div>
+                            <div style="font-weight: 600;">View Only</div>
+                            <div class="option-description">
+                                Others can view the image but cannot make changes
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="share-option" onclick="selectShareOption(this, 'read_write')">
+                        <input type="radio" name="shareMode" value="read_write">
+                        <div>
+                            <div style="font-weight: 600;">Real-time Collaboration</div>
+                            <div class="option-description">
+                                Others can view and edit the image in real-time (requires login)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button class="btn btn-secondary" id="cancelShare">Cancel</button>
+                        <button class="btn btn-primary" id="confirmShare">Create Share Link</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('closeShareModal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            document.getElementById('cancelShare').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            document.getElementById('confirmShare').addEventListener('click', async () => {
+                const shareMode = document.querySelector('input[name="shareMode"]:checked').value;
+                await performShareWithMode(fileId, shareMode);
+                document.body.removeChild(modal);
+            });
+        }
+
+        function selectShareOption(element, mode) {
+            document.querySelectorAll('.share-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.querySelector('input[type="radio"]').checked = false;
+            });
+            element.classList.add('selected');
+            element.querySelector('input[type="radio"]').checked = true;
+        }
+
+        async function performShareWithMode(fileId, shareMode) {
+            try {
+                const shareResponse = await fetch(`/api/cloud/files/${fileId}/share`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': localStorage.token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!shareResponse.ok) {
+                    const error = await shareResponse.json();
+                    throw new Error(error.error);
+                }
+
+                const shareResult = await shareResponse.json();
+
+                const collabResponse = await fetch(`/api/collaboration/session/${fileId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': localStorage.token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ share_mode: shareMode })
+                });
+
+                if (collabResponse.ok) {
+                    const collabResult = await collabResponse.json();
+                    showShareModal(shareResult.public_url, shareMode);
+                    showStatus(`Image shared with ${shareMode} mode!`, 'success');
+                } else {
+                    showShareModal(shareResult.public_url, 'read_only');
+                    showStatus('Image shared (collaboration setup failed)', 'warning');
+                }
+
+            } catch (error) {
+                showStatus('Error sharing file: ' + error.message, 'warning');
+            }
+        }
+
+        function showShareModal(publicUrl, shareMode) {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="share-modal-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">🎉 Image Shared</h2>
+                        <button class="btn-icon" id="closeShareModal" style="background: transparent;">✕</button>
+                    </div>
+                    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+                        Your image is now publicly accessible with <strong>${shareMode === 'read_write' ? 'Real-time Collaboration' : 'View Only'}</strong> mode.
+                    </p>
+                    <div style="display: flex; gap: 8px; margin-bottom: 1.5rem;">
+                        <input type="text" 
+                               id="publicUrlInput" 
+                               value="${window.location.origin}${publicUrl}" 
+                               readonly 
+                               style="flex: 1; padding: 12px; border: 1px solid var(--border-light); border-radius: var(--radius); background: var(--bg-secondary-light); font-size: 14px;">
+                        <button class="btn" id="copyUrlBtn" style="white-space: nowrap;">📋 Copy</button>
+                    </div>
+                    <div style="background: ${shareMode === 'read_write' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'}; 
+                              padding: 12px; border-radius: var(--radius); border: 1px solid ${shareMode === 'read_write' ? 'var(--success)' : 'var(--warning)'};">
+                        <div style="font-size: 14px; color: ${shareMode === 'read_write' ? 'var(--success)' : 'var(--warning)'}; font-weight: 600; margin-bottom: 4px;">
+                            ${shareMode === 'read_write' ? '👥 Real-time Collaboration Active' : '👀 View Only Mode'}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted);">
+                            ${shareMode === 'read_write' 
+                                ? 'Anyone with this link can view and edit this image in real-time. Login required for editing.' 
+                                : 'Anyone with this link can view this image but cannot make changes.'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('closeShareModal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            document.getElementById('copyUrlBtn').addEventListener('click', () => {
+                const input = document.getElementById('publicUrlInput');
+                input.select();
+                document.execCommand('copy');
+                
+                const copyBtn = document.getElementById('copyUrlBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                copyBtn.style.background = 'var(--success)';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '';
+                }, 2000);
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+        }
+
+        // Check for public token in URL on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const publicToken = urlParams.get('publicToken');
+            if (publicToken) {
+                loadImageFromPublicToken(publicToken);
+            }
+            
+            const cloudFileId = urlParams.get('cloudFile');
+            if (cloudFileId && localStorage.token) {
+                loadImageFromCloud(cloudFileId);
+            } else if (cloudFileId && !localStorage.token) {
+                showStatus('Please login to access cloud files', 'warning');
+            }
+        });
     </script>
 </body>
 </html>

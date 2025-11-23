@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Editor - SWARM OFFICE</title>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <!-- Přidány Google Fonts podle požadovaného stylu -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -328,6 +329,127 @@
         #subdivide-section button:hover {
             background: #3a7ac0;
         }
+        /* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background-color: #333;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-width: 500px;
+    width: 90%;
+    color: #f2f2f2;
+    border: 1px solid #555;
+}
+
+.modal-content h3 {
+    margin-bottom: 1rem;
+    color: #f2f2f2;
+}
+
+.modal-content input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    background: #444;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #f2f2f2;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: #2a5a8c;
+    color: white;
+}
+
+.btn-secondary {
+    background: #666;
+    color: white;
+}
+
+.project-item {
+    padding: 0.75rem;
+    background: #444;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.project-item:hover {
+    border-color: #2a5a8c;
+}
+
+.project-item.selected {
+    background: #2a5a8c;
+}
+
+.collaboration-ui {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(51, 51, 51, 0.9);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #555;
+    z-index: 1000;
+    max-width: 300px;
+}
+
+.collaborator-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    font-size: 0.875rem;
+}
+
+.collaborator-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #2a5a8c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
     </style>
 </head>
 <body>
@@ -385,6 +507,12 @@
                     <h3>Export</h3>
                     <button class="add-btn" id="export-obj-btn">💾 Export .OBJ</button>
                     <button class="add-btn" id="export-stl-btn">💾 Export .STL</button>
+                    <div class="add-object-section">
+                    <h3>Cloud & Sdílení</h3>
+                    <button class="add-btn" id="save-to-cloud-btn">💾 Uložit do Cloudu</button>
+                    <button class="add-btn" id="load-from-cloud-btn">📂 Načíst z Cloudu</button>
+                    <button class="add-btn" id="share-project-btn">🔗 Sdílet Projekt</button>
+                </div>
                 </div>
 
                 <div id="sculpt-settings">
@@ -427,7 +555,59 @@
             </div>
         </div>
     </div>
+ <!-- Modal pro ukládání na cloud -->
+<div id="saveModal" class="modal">
+    <div class="modal-content">
+        <h3>Uložit 3D Projekt do Cloudu</h3>
+        <input type="text" id="projectName" placeholder="Název projektu" value="Můj 3D Projekt">
+        <div class="modal-buttons">
+            <button id="confirmSave" class="btn btn-primary">Uložit</button>
+            <button id="cancelSave" class="btn btn-secondary">Zrušit</button>
+        </div>
+    </div>
+</div>
 
+<!-- Modal pro načítání z cloudu -->
+<div id="loadModal" class="modal">
+    <div class="modal-content">
+        <h3>Načíst 3D Projekt z Cloudu</h3>
+        <div id="projectsList" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;"></div>
+        <div class="modal-buttons">
+            <button id="cancelLoad" class="btn btn-secondary">Zrušit</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pro sdílení -->
+<div id="shareModal" class="modal">
+    <div class="modal-content">
+        <h3>Sdílet 3D Projekt</h3>
+        <div id="shareOptions">
+            <div style="margin-bottom: 1rem;">
+                <input type="radio" id="shareReadOnly" name="shareMode" value="read_only" checked>
+                <label for="shareReadOnly">Pouze pro čtení</label>
+            </div>
+            <div>
+                <input type="radio" id="shareReadWrite" name="shareMode" value="read_write">
+                <label for="shareReadWrite">Spolupráce v reálném čase</label>
+            </div>
+        </div>
+        <div id="shareUrlContainer" style="display: none; margin-top: 1rem;">
+            <input type="text" id="shareUrl" readonly style="width: 100%; padding: 0.5rem; background: #444; border: 1px solid #555; border-radius: 4px; color: #f2f2f2;">
+            <button id="copyShareUrl" class="btn btn-primary" style="margin-top: 0.5rem; width: 100%;">Kopírovat odkaz</button>
+        </div>
+        <div class="modal-buttons">
+            <button id="confirmShare" class="btn btn-primary">Vytvořit odkaz</button>
+            <button id="cancelShare" class="btn btn-secondary">Zrušit</button>
+        </div>
+    </div>
+</div>
+
+<!-- UI pro spolupráci -->
+<div id="collaborationUI" class="collaboration-ui" style="display: none;">
+    <h4>👥 Spolupráce</h4>
+    <div id="collaboratorsList"></div>
+</div>
     <script>
         let scene, camera, renderer, controls;
         let objects = [];
@@ -502,6 +682,7 @@
             fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
                 loadedFont = font;
             });
+            initCloudFunctions();
         }
 
         function setupControls() {
@@ -1257,6 +1438,456 @@
             link.click();
             URL.revokeObjectURL(link.href);
         }
+            // Cloud a collaboration funkce
+let socket = null;
+let collaborationSession = null;
+let activeCollaborators = new Map();
+
+// Inicializace cloud funkcí
+function initCloudFunctions() {
+    setupEventListeners();
+    initCollaboration();
+}
+
+function setupEventListeners() {
+    // Cloud tlačítka
+    document.getElementById('save-to-cloud-btn').addEventListener('click', openSaveModal);
+    document.getElementById('load-from-cloud-btn').addEventListener('click', openLoadModal);
+    document.getElementById('share-project-btn').addEventListener('click', openShareModal);
+    
+    // Modal tlačítka
+    document.getElementById('confirmSave').addEventListener('click', saveToCloud);
+    document.getElementById('cancelSave').addEventListener('click', () => hideModal('saveModal'));
+    document.getElementById('cancelLoad').addEventListener('click', () => hideModal('loadModal'));
+    document.getElementById('confirmShare').addEventListener('click', shareProject);
+    document.getElementById('cancelShare').addEventListener('click', () => hideModal('shareModal'));
+    document.getElementById('copyShareUrl').addEventListener('click', copyShareUrl);
+}
+
+function initCollaboration() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const publicToken = urlParams.get('publicToken');
+    
+    if (publicToken) {
+        joinCollaborationSession(publicToken);
+    }
+}
+
+function openSaveModal() {
+    if (!localStorage.token) {
+        alert('Pro ukládání do cloudu se musíte přihlásit.');
+        return;
+    }
+    showModal('saveModal');
+}
+
+function openLoadModal() {
+    if (!localStorage.token) {
+        alert('Pro načítání z cloudu se musíte přihlásit.');
+        return;
+    }
+    showModal('loadModal');
+    loadProjectsList();
+}
+
+function openShareModal() {
+    if (!localStorage.token) {
+        alert('Pro sdílení projektů se musíte přihlásit.');
+        return;
+    }
+    showModal('shareModal');
+}
+
+function showModal(modalId) {
+    document.getElementById(modalId).classList.add('show');
+}
+
+function hideModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+}
+
+async function saveToCloud() {
+    const projectName = document.getElementById('projectName').value || 'Můj 3D Projekt';
+    const projectData = serializeScene();
+    
+    try {
+        const response = await fetch('/api/3d/projects', {
+            method: 'POST',
+            headers: {
+                'Authorization': localStorage.token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: projectName,
+                project_data: JSON.stringify(projectData)
+            })
+        });
+        
+        if (response.ok) {
+            alert('Projekt úspěšně uložen do cloudu!');
+            hideModal('saveModal');
+        } else {
+            alert('Chyba při ukládání projektu: ' + (await response.json()).error);
+        }
+    } catch (error) {
+        alert('Chyba: ' + error.message);
+    }
+}
+
+async function loadProjectsList() {
+    try {
+        const response = await fetch('/api/3d/projects', {
+            headers: {
+                'Authorization': localStorage.token
+            }
+        });
+        
+        if (response.ok) {
+            const projects = await response.json();
+            displayProjectsList(projects);
+        } else {
+            alert('Chyba při načítání projektů');
+        }
+    } catch (error) {
+        alert('Chyba: ' + error.message);
+    }
+}
+
+function displayProjectsList(projects) {
+    const container = document.getElementById('projectsList');
+    container.innerHTML = '';
+    
+    if (projects.length === 0) {
+        container.innerHTML = '<p>Žádné projekty nenalezeny</p>';
+        return;
+    }
+    
+    projects.forEach(project => {
+        const item = document.createElement('div');
+        item.className = 'project-item';
+        item.innerHTML = `
+            <div><strong>${project.name}</strong></div>
+            <div style="font-size: 0.75rem; opacity: 0.7;">Upraveno: ${new Date(project.updated_at).toLocaleDateString()}</div>
+        `;
+        item.addEventListener('click', () => {
+            loadProject(project.id);
+        });
+        container.appendChild(item);
+    });
+}
+
+async function loadProject(projectId) {
+    try {
+        const response = await fetch(`/api/3d/projects/${projectId}`, {
+            headers: {
+                'Authorization': localStorage.token
+            }
+        });
+        
+        if (response.ok) {
+            const project = await response.json();
+            deserializeScene(JSON.parse(project.project_data));
+            hideModal('loadModal');
+            alert('Projekt načten!');
+        } else {
+            alert('Chyba při načítání projektu');
+        }
+    } catch (error) {
+        alert('Chyba: ' + error.message);
+    }
+}
+
+async function shareProject() {
+    const shareMode = document.querySelector('input[name="shareMode"]:checked').value;
+    
+    // Nejprve uložíme projekt
+    const projectName = document.getElementById('projectName').value || 'Sdílený 3D Projekt';
+    const projectData = serializeScene();
+    
+    try {
+        const saveResponse = await fetch('/api/3d/projects', {
+            method: 'POST',
+            headers: {
+                'Authorization': localStorage.token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: projectName,
+                project_data: JSON.stringify(projectData)
+            })
+        });
+        
+        if (saveResponse.ok) {
+            const saveResult = await saveResponse.json();
+            const projectId = saveResult.project_id;
+            
+            // Nyní sdílíme projekt
+            const shareResponse = await fetch(`/api/3d/projects/${projectId}/share`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': localStorage.token,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (shareResponse.ok) {
+                const shareResult = await shareResponse.json();
+                const publicUrl = `${window.location.origin}/triDeditor.html?publicToken=${shareResult.public_url.split('/').pop()}`;
+                
+                document.getElementById('shareUrl').value = publicUrl;
+                document.getElementById('shareUrlContainer').style.display = 'block';
+                
+                // Pokud je režim spolupráce, vytvoříme collaboration session
+                if (shareMode === 'read_write') {
+                    await fetch(`/api/collaboration/session/${projectId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': localStorage.token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ share_mode: 'read_write' })
+                    });
+                }
+            } else {
+                alert('Chyba při sdílení projektu');
+            }
+        } else {
+            alert('Chyba při ukládání projektu pro sdílení');
+        }
+    } catch (error) {
+        alert('Chyba: ' + error.message);
+    }
+}
+
+function copyShareUrl() {
+    const urlInput = document.getElementById('shareUrl');
+    urlInput.select();
+    document.execCommand('copy');
+    alert('Odkaz zkopírován do schránky!');
+}
+
+function serializeScene() {
+    const sceneData = {
+        objects: [],
+        camera: {
+            position: {
+                x: camera.position.x,
+                y: camera.position.y,
+                z: camera.position.z
+            }
+        }
+    };
+    
+    objects.forEach(obj => {
+        if (obj.userData.type) {
+            const objData = {
+                type: obj.userData.type,
+                position: {
+                    x: obj.position.x,
+                    y: obj.position.y,
+                    z: obj.position.z
+                },
+                rotation: {
+                    x: obj.rotation.x,
+                    y: obj.rotation.y,
+                    z: obj.rotation.z
+                },
+                scale: {
+                    x: obj.scale.x,
+                    y: obj.scale.y,
+                    z: obj.scale.z
+                },
+                color: obj.material.color.getHex(),
+                userData: obj.userData
+            };
+            
+            if (obj.userData.type === 'text') {
+                objData.text = obj.userData.text;
+            }
+            
+            sceneData.objects.push(objData);
+        }
+    });
+    
+    return sceneData;
+}
+
+function deserializeScene(sceneData) {
+    // Vyčištění scény
+    objects.forEach(obj => {
+        scene.remove(obj);
+        if (obj.userData.outline) {
+            scene.remove(obj.userData.outline);
+        }
+    });
+    objects = [];
+    
+    // Obnovení kamery
+    if (sceneData.camera) {
+        camera.position.set(
+            sceneData.camera.position.x,
+            sceneData.camera.position.y,
+            sceneData.camera.position.z
+        );
+        camera.lookAt(0, 0, 0);
+    }
+    
+    // Obnovení objektů
+    sceneData.objects.forEach(objData => {
+        let geometry, material, mesh;
+        
+        material = new THREE.MeshStandardMaterial({ 
+            color: objData.color,
+            metalness: 0.3,
+            roughness: 0.7,
+            flatShading: false 
+        });
+        
+        switch(objData.type) {
+            case 'cube':
+                geometry = new THREE.BoxGeometry(1, 1, 1, 20, 20, 20);
+                break;
+            case 'sphere':
+                geometry = new THREE.SphereGeometry(0.5, 64, 64);
+                break;
+            case 'cylinder':
+                geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32, 20);
+                break;
+            case 'torus':
+                geometry = new THREE.TorusGeometry(0.5, 0.2, 30, 100);
+                break;
+            case 'cone':
+                geometry = new THREE.ConeGeometry(0.5, 1, 32, 20);
+                break;
+            case 'text':
+                if (!loadedFont) {
+                    console.warn('Font not loaded, skipping text object');
+                    return;
+                }
+                geometry = new THREE.TextGeometry(objData.text || 'Text', {
+                    font: loadedFont,
+                    size: 0.5,
+                    height: 0.1,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 0.02,
+                    bevelSize: 0.01,
+                    bevelSegments: 5
+                });
+                geometry.center();
+                break;
+        }
+        
+        mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(
+            objData.position.x,
+            objData.position.y,
+            objData.position.z
+        );
+        mesh.rotation.set(
+            objData.rotation.x,
+            objData.rotation.y,
+            objData.rotation.z
+        );
+        mesh.scale.set(
+            objData.scale.x,
+            objData.scale.y,
+            objData.scale.z
+        );
+        
+        mesh.userData = objData.userData;
+        
+        scene.add(mesh);
+        objects.push(mesh);
+    });
+    
+    updateObjectsList();
+}
+
+// Spolupráce funkce
+function joinCollaborationSession(publicToken) {
+    socket = io();
+    
+    socket.on('connect', () => {
+        console.log('Connected to collaboration server');
+        socket.emit('join_collaboration', {
+            public_token: publicToken,
+            user_token: localStorage.token
+        });
+    });
+    
+    socket.on('session_info', (data) => {
+        collaborationSession = data;
+        showCollaborationUI();
+    });
+    
+    socket.on('user_joined', (data) => {
+        addCollaborator(data.username, data.socket_id);
+    });
+    
+    socket.on('user_left', (data) => {
+        removeCollaborator(data.socket_id);
+    });
+    
+    socket.on('3d_update', (data) => {
+        applyRemote3DOperation(data.operation, data.username);
+    });
+}
+
+function showCollaborationUI() {
+    document.getElementById('collaborationUI').style.display = 'block';
+}
+
+function addCollaborator(username, socketId) {
+    activeCollaborators.set(socketId, username);
+    updateCollaboratorsList();
+}
+
+function removeCollaborator(socketId) {
+    activeCollaborators.delete(socketId);
+    updateCollaboratorsList();
+}
+
+function updateCollaboratorsList() {
+    const list = document.getElementById('collaboratorsList');
+    list.innerHTML = '';
+    
+    activeCollaborators.forEach((username, socketId) => {
+        const item = document.createElement('div');
+        item.className = 'collaborator-item';
+        item.innerHTML = `
+            <div class="collaborator-avatar">${username.charAt(0).toUpperCase()}</div>
+            <div>${username}</div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function send3DOperation(operation) {
+    if (!socket || !collaborationSession) return;
+    
+    socket.emit('3d_operation', {
+        public_token: collaborationSession.public_token,
+        operation: operation,
+        username: getCurrentUsername()
+    });
+}
+
+function applyRemote3DOperation(operation, username) {
+    // Implementace podle typu operace
+    console.log(`Applying remote operation from ${username}:`, operation);
+    // Zde by se aplikovaly změny od ostatních uživatelů
+}
+
+function getCurrentUsername() {
+    if (localStorage.token) {
+        return 'User'; // V reálné aplikaci bychom načítali z profilu
+    }
+    return 'Anonymous';
+}
+
     </script>
+   
+
 </body>
 </html>

@@ -10,3 +10,4 @@ const textBox = document.getElementById("textBox");
       btn.textContent = "Přepnout na RTL";
     }
   });
+
