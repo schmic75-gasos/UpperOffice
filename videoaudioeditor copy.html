@@ -4,33 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profesionální Video Editor</title>
+    <link rel="stylesheet" href="untiteld-1.CSS">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js" integrity="sha512-xT0S/xXvkrfkRXGBPlzZPCAncnMK5c1N7slRkToUbv8Z901aUEuKO84tLy8dWU+3ew4InFEN7TebPaVMy2npZw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <!DOCTYPE html> <!--UJISTÍ PROHLÍŽEČ, ŽE TOTO JE HTML, NE NIC PODOBNÉHO (TŘEBA XML).-->
-<html> <!--V TOMTO TAGU (MEZI ZAČÁTEČNÍM A UKONROVACÍM) VŽDY MUSÍ MÍT CELÁ HTML STRÁNKA, TAKŽE HEAD, BODY, MAIN, FOOTER, PROSTĚ VŠECHNO. KDE KONČÍ HTML TAG, TAM KONČÍ STRÁNKA.-->
-<head> <!--HEAD SEKCE - TO, CO NENÍ VIDĚT - NASTAVENÍ APOD.-->
-    <meta charset="utf-8"> <!--KÓDOVÁNÍ UTF-8 - ČESKÁ DIAKRITIKA, SPECIÁLNÍ ZNAKY APOD. - NUTNOST-->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--ZÁKLAD PRO RESPONZIVNÍ DESIGN-->
-    <title>Swarm Office - <!--NÁZEV STRÁNKY--></title>
-    <link rel="stylesheet" href="untiteld-1.CSS" type="text/css"> <!--PROPOJENÍ S NAŠÍM CSS SOUBOREM - JE DŮLEŽITÉ, ABY KAŽDÁ STRÁNKA MĚLA NÁZVY TAGŮ V SOUHLADU S OBECNÝMI CSS STYLY.-->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"> <!--PROPOJENÍ S GOOGLE FONTS - PÍSMO-->
-</head> <!--KONEC HEAD SEKCE - NEZAPOMEŇ SPRÁVNĚ UKONČOVAT TAGY.-->
-<body> <!--VIDITELNÉ TĚLO STRÁNKY-->
-    <header> <!--HLAVIČKA-->
-        <a href="index.html" class="logo">SWARM OFFICE</a> <!--VŽDY STEJNÉ-->
-        <div class="navigation"> <!--VŽDY STEJNÉ-->
-            <nav> <!--VŽDY STEJNÉ-->
-                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li> <!--VŽDY STEJNÉ-->
-                <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li> <!--VŽDY STEJNÉ-->
-                <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li> <!--VŽDY STEJNÉ-->
-                <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li> <!--VŽDY STEJNÉ-->
-                <li class="nav-item login-container"> <!--VŽDY STEJNÉ-->
-                    <a href="Login.html" class="nav-link login-link">👨‍🚒</a> <!--VŽDY STEJNÉ-->
-                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div> <!--VŽDY STEJNÉ-->
-                </li> <!--VŽDY STEJNÉ-->
-            </nav> <!--VŽDY STEJNÉ-->
-        </div> <!--VŽDY STEJNÉ-->
-    </header> <!--VŽDY STEJNÉ-->
-    <style src="untiteld-1.CSS"></style>
     <style>
         /* CSS zůstává stejné */
         * {
@@ -41,10 +16,10 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color:  rgba(42, 90, 140, 0.3);
-            color: #f2f2f2;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
             min-height: 100vh;
-            padding: 0;
+            padding: 20px;
         }
 
         .container {
@@ -112,7 +87,6 @@
             margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
-            border: #f2f2f2 2px;
         }
 
         input[type="range"] {
@@ -122,6 +96,7 @@
             background: #444;
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
             margin-bottom: 10px;
         }
 
@@ -131,7 +106,7 @@
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: rgba(42, 90, 140, 0.3);
+            background: #00d4ff;
             cursor: pointer;
             box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         }
@@ -140,7 +115,7 @@
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: rgba(42, 90, 140, 0.3);
+            background: #00d4ff;
             cursor: pointer;
             border: none;
             box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
@@ -158,33 +133,33 @@
             padding: 10px;
             border: none;
             border-radius: 6px;
-            background: rgba(42, 90, 140, 0.3);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
             font-size: 0.9em;
-            border-color: #f2f2f2;
-            border-style: groove 2px;
         }
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 214, 234, 0.4);
-            b
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
         }
 
-    
+        button:active {
+            transform: translateY(0);
+        }
+
         .export-btn {
-            background: 0 5px 20px rgba(42, 90, 140, 0.3);
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         }
 
         .export-btn:hover {
-            box-shadow: 0 5px 20px rgba(42, 90, 140, 0.3);
+            box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
         }
 
         .danger-btn {
-            background: linear-gradient(135deg, rgba(42, 90, 140, 0.3));
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
         }
 
         input[type="file"] {
@@ -217,7 +192,7 @@
 
         .info-section {
             background: rgba(0, 212, 255, 0.1);
-            border-left: 3px solid rgba(42, 90, 140, 0.3);
+            border-left: 3px solid #00d4ff;
             padding: 10px;
             border-radius: 4px;
             margin-top: 15px;
@@ -294,7 +269,7 @@
 
         .format-desc {
             font-size: 0.85em;
-            color: #333;
+            color: #aaa;
         }
 
         .progress-bar {
@@ -309,7 +284,7 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, rgba(42, 90, 140, 0.3));
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             width: 0%;
             transition: width 0.2s;
         }
@@ -323,11 +298,69 @@
                 max-height: none;
             }
         }
+        /* Cloud Save Specific Styles */
+.cloud-stats {
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 0;
+    font-size: 0.85em;
+}
+
+.cloud-stat {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.cloud-stat:last-child {
+    margin-bottom: 0;
+}
+
+.cloud-limit-warning {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 6px;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 0.8em;
+    color: #ffc107;
+}
+
+.cloud-success {
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 6px;
+    padding: 15px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.cloud-success .icon {
+    font-size: 2em;
+    margin-bottom: 8px;
+}
     </style>
 </head>
 <body>
+    <header>
+        <a href="index.html" class="logo">UPPER OFFICE</a>
+        <div class="navigation" style="border-radius: 15px !important;">
+            <nav style="border-radius: 15px !important;">
+                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
+                <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li>
+                <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li>
+                <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li>
+                <li class="nav-item"><a href="cloud.html" class="nav-link">Cloud Storage</a></li>
+                <li class="nav-item login-container">
+                    <a href="Login.html" class="nav-link login-link">👨‍🚒</a>
+                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div>
+                </li>
+            </nav>
+        </div>
+    </header>
     <div class="container">
-
+        <h1>🎬 Profesionální Video Editor</h1>
 
         <div class="editor-wrapper">
             <div class="main-editor">
@@ -336,7 +369,7 @@
                     <canvas id="canvas" style="display: none;"></canvas>
                     <video id="videoPreview" style="display: none;" crossorigin="anonymous"></video>
                     <img id="imagePreview" style="display: none;" crossorigin="anonymous">
-                    <span id="placeholder" ;>Nahraj video, audio nebo obrázek</span>
+                    <span id="placeholder" style="color: #666;">Nahraj video, audio nebo obrázek</span>
                 </div>
 
                 <!-- Timeline -->
@@ -364,6 +397,7 @@
                         <button id="uploadBtn">Nahraj soubor</button>
                         <button id="saveProjectBtn">💾 Uložit projekt</button>
                         <button id="loadProjectBtn">📂 Načíst projekt</button>
+                        <button id="saveToCloudBtn" class="export-btn">☁️ Uložit na Cloud</button>
                     </div>
                     <input type="file" id="fileInput" accept="video/*,audio/*,image/*">
                     <input type="file" id="projectInput" accept=".json">
@@ -444,6 +478,61 @@
             <button class="close-modal" onclick="document.getElementById('exportModal').classList.remove('active')">Zavřít</button>
         </div>
     </div>
+    <!-- Cloud Save Modal -->
+<!-- Cloud Save Modal -->
+<div id="cloudSaveModal" class="modal">
+    <div class="modal-content">
+        <h2>☁️ Uložit na Cloud</h2>
+        
+        <div class="cloud-stats">
+            <div class="cloud-stat">
+                <span>Limit souboru:</span>
+                <span style="color: #00d4ff;">12 MB</span>
+            </div>
+            <div class="cloud-stat">
+                <span>Podporované formáty:</span>
+                <span>WebM, PNG</span>
+            </div>
+        </div>
+
+        <div class="cloud-limit-warning">
+            ⚠️ Pro lepší kompresi jsou videa omezena na 30 sekund
+        </div>
+
+        <div class="export-options">
+            <div class="export-option" data-format="webm">
+                <div class="format-name">🎬 WebM Video</div>
+                <div class="format-desc">
+                    VP9 kodek, kvalitní komprese<br>
+                    Doporučeno pro videa do 30s
+                </div>
+            </div>
+            <div class="export-option" data-format="png">
+                <div class="format-name">🖼️ PNG Snímek</div>
+                <div class="format-desc">
+                    Bezeztrátový formát<br>
+                    Aktuální frame v plné kvalitě
+                </div>
+            </div>
+        </div>
+
+        <div id="cloudFileInfo" style="display: none; background: rgba(0, 212, 255, 0.1); padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.85em;">
+            <div>📊 <strong id="cloudFileSize">0 MB</strong></div>
+            <div>⏱️ <strong id="cloudFileDuration">0s</strong></div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        
+        <div id="cloudProgressText" style="text-align: center; margin-top: 10px; font-size: 0.9em;"></div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button id="startCloudSaveBtn" class="export-btn" style="flex: 2;">🚀 Uložit na Cloud</button>
+            <button class="close-modal" style="flex: 1;" onclick="document.getElementById('cloudSaveModal').classList.remove('active')">Zrušit</button>
+        </div>
+    </div>
+</div>
 
     <script>
     // Editor State
@@ -1239,6 +1328,342 @@
     // Initialize on load
     window.addEventListener('DOMContentLoaded', init);
 </script>
- 
+<script>
+    // Cloud Save Functionality
+let selectedCloudFormat = 'webm';
+
+function setupCloudSave() {
+    // Cloud Save Button
+    document.getElementById('saveToCloudBtn').addEventListener('click', () => {
+        if (!localStorage.token) {
+            alert('Pro ukládání na cloud se musíte přihlásit!');
+            window.open('Login.html', '_blank');
+            return;
+        }
+        
+        if (!state.media) {
+            alert('Nejdřív nahrajte soubor!');
+            return;
+        }
+        
+        document.getElementById('cloudSaveModal').classList.add('active');
+        setupCloudFormatSelection();
+    });
+
+    // Start Cloud Save
+    document.getElementById('startCloudSaveBtn').addEventListener('click', startCloudSave);
+}
+
+function setupCloudFormatSelection() {
+    const options = document.querySelectorAll('#cloudSaveModal .export-option');
+    options.forEach(option => {
+        option.classList.remove('selected');
+        option.addEventListener('click', () => {
+            options.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            selectedCloudFormat = option.dataset.format;
+        });
+    });
+    
+    // Select WebM by default
+    options[0].classList.add('selected');
+    selectedCloudFormat = 'webm';
+}
+
+async function startCloudSave() {
+    const progressBar = document.querySelector('#cloudSaveModal .progress-bar');
+    const progressFill = document.querySelector('#cloudSaveModal .progress-fill');
+    const progressText = document.getElementById('cloudProgressText');
+
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Příprava souboru...';
+
+    try {
+        let blob;
+        let filename;
+        let fileType;
+
+        if (selectedCloudFormat === 'webm') {
+            progressText.textContent = 'Exportování WebM videa...';
+            blob = await exportWebMForCloud(progressFill, progressText);
+            filename = `video-${Date.now()}.webm`;
+            fileType = 'video/webm';
+        } else if (selectedCloudFormat === 'png') {
+            progressText.textContent = 'Exportování PNG snímku...';
+            blob = await exportPNGForCloud();
+            filename = `screenshot-${Date.now()}.png`;
+            fileType = 'image/png';
+        }
+
+        // Check file size (12MB limit)
+        if (blob.size > 12 * 1024 * 1024) {
+            throw new Error(`Soubor je příliš velký (${(blob.size / 1024 / 1024).toFixed(2)}MB). Maximální velikost je 12MB.`);
+        }
+
+        progressText.textContent = 'Nahrávání na cloud...';
+        progressFill.style.width = '80%';
+
+        // Upload to cloud
+        await uploadToCloud(blob, filename, fileType);
+
+        progressFill.style.width = '100%';
+        progressText.textContent = '✅ Úspěšně uloženo na cloud!';
+        
+        setTimeout(() => {
+            document.getElementById('cloudSaveModal').classList.remove('active');
+            progressBar.style.display = 'none';
+        }, 2000);
+
+    } catch (error) {
+        console.error('Cloud save error:', error);
+        progressText.textContent = `❌ Chyba: ${error.message}`;
+        progressFill.style.backgroundColor = '#ef4444';
+        
+        setTimeout(() => {
+            document.getElementById('cloudSaveModal').classList.remove('active');
+            progressBar.style.display = 'none';
+            progressFill.style.backgroundColor = '';
+        }, 3000);
+    }
+}
+
+async function exportWebMForCloud(progressFill, progressText) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const stream = await captureMediaStream();
+            if (!stream) {
+                reject(new Error('Nelze zachytit video stream'));
+                return;
+            }
+
+            const mediaRecorder = new MediaRecorder(stream, { 
+                mimeType: 'video/webm; codecs=vp9',
+                videoBitsPerSecond: 1500000 // 1.5 Mbps for smaller file size
+            });
+            
+            const chunks = [];
+            let duration = Math.min(state.duration, 30); // Max 30 seconds for cloud
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
+                    const progress = (chunks.length / 10) * 60;
+                    progressFill.style.width = Math.min(progress, 60) + '%';
+                    progressText.textContent = `Exportování videa... ${Math.round(progress)}%`;
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                resolve(blob);
+            };
+
+            mediaRecorder.onerror = (e) => {
+                reject(new Error('Chyba při nahrávání videa'));
+            };
+
+            mediaRecorder.start();
+            
+            // Record for shorter duration to keep file size small
+            setTimeout(() => {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }, duration * 1000);
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+async function exportPNGForCloud() {
+    return new Promise((resolve) => {
+        // Create a high-quality PNG from canvas
+        const dataURL = canvas.toDataURL('image/png', 0.9);
+        
+        // Convert dataURL to blob
+        fetch(dataURL)
+            .then(res => res.blob())
+            .then(blob => {
+                resolve(blob);
+            });
+    });
+}
+
+async function uploadToCloud(blob, filename, fileType) {
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+
+    const response = await fetch('/api/cloud/upload', {
+        method: 'POST',
+        headers: {
+            'Authorization': localStorage.token
+        },
+        body: formData
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error || 'Chyba při nahrávání na cloud');
+    }
+
+    return result;
+}
+
+// Enhanced captureMediaStream for cloud (higher quality)
+async function captureMediaStream() {
+    try {
+        // Increase canvas resolution for better quality
+        const originalWidth = canvas.width;
+        const originalHeight = canvas.height;
+        
+        // Temporarily increase resolution for recording
+        canvas.width = 1280;
+        canvas.height = 720;
+        render(); // Re-render with higher resolution
+        
+        const stream = canvas.captureStream(25); // 25 FPS for smaller files
+        
+        // Add audio if available
+        if (state.mediaType === 'video' || state.mediaType === 'audio') {
+            const audioStream = await captureAudioStream();
+            if (audioStream) {
+                const audioTracks = audioStream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    stream.addTrack(audioTracks[0]);
+                }
+            }
+        }
+        
+        // Restore original canvas size after getting stream
+        setTimeout(() => {
+            canvas.width = originalWidth;
+            canvas.height = originalHeight;
+            render();
+        }, 100);
+        
+        return stream;
+    } catch (error) {
+        console.error('Error capturing media stream:', error);
+        return null;
+    }
+}
+
+// Enhanced audio capture for cloud
+async function captureAudioStream() {
+    if (state.mediaType === 'audio' || state.mediaType === 'video') {
+        try {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            if (state.mediaType === 'video') {
+                // For video, we need to capture audio from the video element
+                const audioStream = state.media.captureStream ? state.media.captureStream() : null;
+                if (audioStream) {
+                    return audioStream;
+                }
+            }
+            
+            // Fallback for audio files
+            audioSource = audioContext.createMediaElementSource(state.media);
+            audioDestination = audioContext.createMediaStreamDestination();
+            
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = state.audio.volume / 100;
+            
+            audioSource.connect(gainNode);
+            gainNode.connect(audioDestination);
+            gainNode.connect(audioContext.destination);
+            
+            return audioDestination.stream;
+        } catch (error) {
+            console.error('Error capturing audio stream:', error);
+            return null;
+        }
+    }
+    return null;
+}
+
+// File size helper function
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Check authentication status
+function checkAuth() {
+    if (!localStorage.token) {
+        document.getElementById('saveToCloudBtn').style.opacity = '0.6';
+        document.getElementById('saveToCloudBtn').title = 'Pro ukládání na cloud se přihlaste';
+    } else {
+        document.getElementById('saveToCloudBtn').style.opacity = '1';
+        document.getElementById('saveToCloudBtn').title = 'Uložit na cloud';
+    }
+}
+
+// Update init function
+function init() {
+    setupEventListeners();
+    setupExportModal();
+    setupCloudSave();
+    checkAuth(); // Add this line
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+}
+
+// Check auth when page loads
+window.addEventListener('DOMContentLoaded', init);
+</script>
+ <script>
+    // Update cloud format selection to show file info
+function setupCloudFormatSelection() {
+    const options = document.querySelectorAll('#cloudSaveModal .export-option');
+    const fileInfo = document.getElementById('cloudFileInfo');
+    
+    options.forEach(option => {
+        option.classList.remove('selected');
+        option.addEventListener('click', () => {
+            options.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            selectedCloudFormat = option.dataset.format;
+            
+            // Show file size estimation
+            updateCloudFileInfo();
+        });
+    });
+    
+    // Select WebM by default and show info
+    options[0].classList.add('selected');
+    selectedCloudFormat = 'webm';
+    updateCloudFileInfo();
+}
+
+function updateCloudFileInfo() {
+    const fileInfo = document.getElementById('cloudFileInfo');
+    const fileSize = document.getElementById('cloudFileSize');
+    const fileDuration = document.getElementById('cloudFileDuration');
+    
+    if (selectedCloudFormat === 'webm') {
+        // Estimate WebM file size (rough calculation)
+        const duration = Math.min(state.duration, 30);
+        const estimatedSize = duration * 0.05; // ~50KB per second
+        fileSize.textContent = `${Math.min(estimatedSize, 12).toFixed(1)} MB`;
+        fileDuration.textContent = `${Math.round(duration)}s`;
+        fileInfo.style.display = 'block';
+    } else if (selectedCloudFormat === 'png') {
+        // PNG is usually small
+        fileSize.textContent = '~0.5-2 MB';
+        fileDuration.textContent = '1 snímek';
+        fileInfo.style.display = 'block';
+    }
+}
+ </script>
 </body>
 </html>

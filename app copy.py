@@ -33,7 +33,7 @@ CONVERTAPI_SECRET = "Sf9JecGzQNCmcQhGDUX29TY1y9F5Vrq1"  # Z ConvertAPI dashboard
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def db():
-    return sqlite3.connect(DB, timeout=10, check_same_thread=False)
+    return sqlite3.connect(DB)
 
 # ----------- UTIL -----------
 def generate_token():
@@ -460,10 +460,6 @@ def get_collaboration_session(public_token):
 
 @app.route("/app.py")
 def noaccess():
-    return Response("{'error':'ACCESS DENIED'}", status=403, mimetype='application/json')
-
-@app.route("/nohup.out")
-def nohupnoaccess():
     return Response("{'error':'ACCESS DENIED'}", status=403, mimetype='application/json')
 
 @app.route("/users.db")
@@ -1494,4 +1490,4 @@ if __name__ == "__main__":
     con.commit()
     con.close()
     
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=1144)
