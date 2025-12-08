@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Office - Image Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style src="untiteld-1.CSS"></style>
+    <style>
+        body {
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: #333;
+            color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            font-size: ;
+        }
+
+        /* Header Styles */
+        header {
+            background: rgba(42, 90, 140, 0.3);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #444;
+        }
+
+        .logo {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .navigation nav {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+        }
+
+        .nav-item {
+            display: inline-block;
+        }
+
+        .login-container {
+            position: relative;
+        }
+
+        .login-tooltip {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #444;
+            padding: 10px;
+            font-size: 0.8rem;
+            width: 200px;
+            border-radius: 4px;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .login-container:hover .login-tooltip {
+            display: block;
+        }
+
+        /* Editor Styles */
+        h2 {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        #editor-container {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        #panel {
+            padding: 20px;
+            background: #444;
+            width: 300px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            min-height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+
+        canvas {
+            max-width: 100%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            width: 100%;
+            background-color: rgba(42, 90, 140, 0.6);
+            color: #f2f2f2;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        button:hover {
+            background-color: rgba(42, 90, 140, 0.9);
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(42, 90, 140, 0.3);
+            border-left: 5px solid #ffc107;
+            font-size: 0.85rem;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .checkbox-group {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">SWARM OFFICE</a>
+        <div class="navigation">
+            <nav>
+                <li class="nav-item"><a href="#" class="nav-link">Your Projects</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Users Projects</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">User Guide</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Support Us</a></li>
+                <li class="nav-item login-container">
+                    <a href="#" class="nav-link login-link">👨‍🚒</a>
+                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div>
+                </li>
+            </nav>
+        </div>
+    </header>
+
+    <h2>Jednoduchý Image Editor</h2>
+
+    <div id="editor-container">
+        <div id="panel">
+            <input type="file" id="imageLoader" accept="image/*" onchange="handleImageFile(event)">
+            
+            <label>Jas</label>
+            <input type="range" id="brightness" min="0" max="200" value="100" oninput="updateFilters()" onchange="saveHistory()">
+
+            <label>Kontrast</label>
+            <input type="range" id="contrast" min="0" max="200" value="100" oninput="updateFilters()" onchange="saveHistory()">
+
+            <label>Saturace</label>
+            <input type="range" id="saturation" min="0" max="200" value="100" oninput="updateFilters()" onchange="saveHistory()">
+
+            <label>Blur</label>
+            <input type="range" id="blur" min="0" max="10" value="0" step="0.1" oninput="updateFilters()" onchange="saveHistory()">
+
+            <label>Hue</label>
+            <input type="range" id="hue" min="0" max="360" value="0" oninput="updateFilters()" onchange="saveHistory()">
+
+            <label>Sepia</label>
+            <input type="range" id="sepia" min="0" max="100" value="0" oninput="updateFilters()" onchange="saveHistory()">
+
+            <label>Stín</label>
+            <input type="range" id="shadow" min="0" max="50" value="0" oninput="updateFilters()" onchange="saveHistory()">
+
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="grayscale" onchange="updateFilters(); saveHistory()"> Odstíny šedi</label>
+                <label><input type="checkbox" id="invert" onchange="updateFilters(); saveHistory()"> Inverze</label>
+            </div>
+
+            <button onclick="rotate(90)">Otočit 90°</button>
+            <button onclick="rotate(-90)">Otočit -90°</button>
+            <button onclick="flip('x')">Převrátit horizontálně</button>
+            <button onclick="flip('y')">Převrátit vertikálně</button>
+            <button onclick="undo()">Undo</button>
+            <button onclick="redo()">Redo</button>
+            <button onclick="resetImage()">Reset</button>
+            <button onclick="downloadImage()">Stáhnout</button>
+
+            <div id="status">Připraven.</div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+<script>
+// Global variables
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let originalFileImage = null; // The raw image loaded from file
+let currentImage = null;      // The current geometry (rotated/flipped) without filters
+let historyStack = [];
+let redoStack = [];
+const MAX_HISTORY = 20;
+
+// Initial state
+let filters = {
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    blur: 0,
+    hue: 0,
+    sepia: 0,
+    shadow: 0,
+    grayscale: false,
+    invert: false
+};
+
+function handleImageFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const img = new Image();
+    img.onload = () => {
+        originalFileImage = img;
+        currentImage = img;
+        resetFiltersUI();
+        historyStack = [];
+        redoStack = [];
+        render();
+        saveHistory();
+        updateStatus("Obrázek načten.");
+    };
+    img.src = URL.createObjectURL(file);
+}
+
+function updateFilters() {
+    // Read values from UI
+    filters.brightness = document.getElementById("brightness").value;
+    filters.contrast = document.getElementById("contrast").value;
+    filters.saturation = document.getElementById("saturation").value;
+    filters.blur = document.getElementById("blur").value;
+    filters.hue = document.getElementById("hue").value;
+    filters.sepia = document.getElementById("sepia").value;
+    filters.shadow = document.getElementById("shadow").value;
+    filters.grayscale = document.getElementById("grayscale").checked;
+    filters.invert = document.getElementById("invert").checked;
+
+    render();
+}
+
+function render() {
+    if (!currentImage) return;
+
+    // Set canvas size to match the current image geometry
+    canvas.width = currentImage.width;
+    canvas.height = currentImage.height;
+
+    // Construct filter string
+    const f = filters;
+    const filterString = `
+        brightness(${f.brightness}%) 
+        contrast(${f.contrast}%) 
+        saturate(${f.saturation}%) 
+        grayscale(${f.grayscale ? 100 : 0}%) 
+        invert(${f.invert ? 100 : 0}%) 
+        blur(${f.blur}px) 
+        hue-rotate(${f.hue}deg) 
+        sepia(${f.sepia}%) 
+        drop-shadow(${f.shadow}px ${f.shadow}px ${f.shadow}px black)
+    `;
+
+    // Apply filter and draw
+    ctx.filter = filterString;
+    ctx.drawImage(currentImage, 0, 0);
+}
+
+function rotate(deg) {
+    if (!currentImage) return;
+
+    const rad = deg * Math.PI / 180;
+    const w = currentImage.width;
+    const h = currentImage.height;
+    
+    // Calculate new bounding box
+    const newW = Math.abs(w * Math.cos(rad)) + Math.abs(h * Math.sin(rad));
+    const newH = Math.abs(w * Math.sin(rad)) + Math.abs(h * Math.cos(rad));
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = newW;
+    tempCanvas.height = newH;
+    const tempCtx = tempCanvas.getContext("2d");
+
+    // Draw rotated image onto temp canvas (without filters)
+    tempCtx.translate(newW/2, newH/2);
+    tempCtx.rotate(rad);
+    tempCtx.drawImage(currentImage, -w/2, -h/2);
+
+    // Update currentImage to be this new rotated version
+    const newImg = new Image();
+    newImg.onload = () => {
+        currentImage = newImg;
+        render();
+        saveHistory();
+        updateStatus(`Otočeno o ${deg}°`);
+    };
+    newImg.src = tempCanvas.toDataURL();
+}
+
+function flip(axis) {
+    if (!currentImage) return;
+
+    const w = currentImage.width;
+    const h = currentImage.height;
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const tempCtx = tempCanvas.getContext("2d");
+
+    // Flip logic
+    tempCtx.translate(axis === 'x' ? w : 0, axis === 'y' ? h : 0);
+    tempCtx.scale(axis === 'x' ? -1 : 1, axis === 'y' ? -1 : 1);
+    tempCtx.drawImage(currentImage, 0, 0);
+
+    const newImg = new Image();
+    newImg.onload = () => {
+        currentImage = newImg;
+        render();
+        saveHistory();
+        updateStatus(axis === 'x' ? "Převráceno horizontálně" : "Převráceno vertikálně");
+    };
+    newImg.src = tempCanvas.toDataURL();
+}
+
+function saveHistory() {
+    if (!currentImage) return;
+    
+    // Save state: current geometry (src) + current filter settings
+    const state = {
+        imageSrc: currentImage.src,
+        filters: { ...filters }
+    };
+
+    historyStack.push(state);
+    if (historyStack.length > MAX_HISTORY) historyStack.shift();
+    
+    // Clear redo stack on new action
+    redoStack = [];
+}
+
+function undo() {
+    if (historyStack.length <= 1) return; // Keep at least initial state
+
+    const currentState = historyStack.pop();
+    redoStack.push(currentState);
+
+    const prevState = historyStack[historyStack.length - 1];
+    restoreState(prevState);
+    updateStatus("Undo");
+}
+
+function redo() {
+    if (redoStack.length === 0) return;
+
+    const nextState = redoStack.pop();
+    historyStack.push(nextState);
+    
+    restoreState(nextState);
+    updateStatus("Redo");
+}
+
+function restoreState(state) {
+    // Restore filters
+    filters = { ...state.filters };
+    
+    // Update UI controls to match
+    document.getElementById("brightness").value = filters.brightness;
+    document.getElementById("contrast").value = filters.contrast;
+    document.getElementById("saturation").value = filters.saturation;
+    document.getElementById("blur").value = filters.blur;
+    document.getElementById("hue").value = filters.hue;
+    document.getElementById("sepia").value = filters.sepia;
+    document.getElementById("shadow").value = filters.shadow;
+    document.getElementById("grayscale").checked = filters.grayscale;
+    document.getElementById("invert").checked = filters.invert;
+
+    // Restore image geometry
+    const img = new Image();
+    img.onload = () => {
+        currentImage = img;
+        render();
+    };
+    img.src = state.imageSrc;
+}
+
+function resetImage() {
+    if (!originalFileImage) return;
+
+    currentImage = originalFileImage;
+    resetFiltersUI();
+    
+    historyStack = [];
+    redoStack = [];
+    saveHistory();
+    render();
+    updateStatus("Resetováno");
+}
+
+function resetFiltersUI() {
+    filters = {
+        brightness: 100,
+        contrast: 100,
+        saturation: 100,
+        blur: 0,
+        hue: 0,
+        sepia: 0,
+        shadow: 0,
+        grayscale: false,
+        invert: false
+    };
+    
+    document.getElementById("brightness").value = 100;
+    document.getElementById("contrast").value = 100;
+    document.getElementById("saturation").value = 100;
+    document.getElementById("blur").value = 0;
+    document.getElementById("hue").value = 0;
+    document.getElementById("sepia").value = 0;
+    document.getElementById("shadow").value = 0;
+    document.getElementById("grayscale").checked = false;
+    document.getElementById("invert").checked = false;
+}
+
+function downloadImage() {
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'upraveny-obrazek.png';
+    link.href = canvas.toDataURL();
+    link.click();
+}
+
+function updateStatus(msg) {
+    const el = document.getElementById("status");
+    if (el) el.innerText = msg;
+}
+</script>
+</body>
+</html>

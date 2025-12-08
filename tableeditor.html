@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swarm Office - Excel</title>
+    <title>UPPER Office - Excel</title>
+    <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Added Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -324,11 +325,96 @@
             cursor: pointer;
             background: none;
         }
+        /* Přidat do existujícího CSS */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: #3a3a3a;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #555;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    color: #f2f2f2;
+}
+
+.close-modal {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-modal:hover {
+    color: #fff;
+}
+
+.btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: rgba(42, 90, 140, 0.8);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: rgba(42, 90, 140, 1);
+}
+
+.btn-secondary {
+    background: #666;
+    color: white;
+}
+
+.btn-success {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+
+.cloud-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.project-item {
+    transition: background-color 0.3s;
+}
+
+.project-item:hover {
+    background-color: #555 !important;
+}
     </style>
 </head>
 <body>
     <header>
-        <a href="index.html" class="logo">SWARM OFFICE</a>
+        <a href="index.html" class="logo">UPPER OFFICE</a>
         <div class="navigation">
             <nav>
                 <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
@@ -353,6 +439,7 @@
                 <button onclick="clearAll()">🗑️ Vymazat vše</button> 
                 <button onclick="openChartModal()">📊 Vytvořit graf</button>
                 <button onclick="exportToCSV()">💾 Export CSV</button>
+                <button onclick="openCloudModal()" class="btn btn-primary">☁️ Cloud</button>
                 <!-- Added Chart Button -->
                 <!-- Added Conditional Formatting Button -->
                 <button onclick="openConditionalModal()">🎨 Podmíněné formátování</button>
@@ -521,6 +608,16 @@
                 }
                 table.appendChild(tr);
             }
+                // Upravit event listener pro input
+    div.addEventListener('input', function() {
+        const cellId = getCellId(this.dataset.row, this.dataset.col);
+        cellData[cellId] = this.textContent;
+        document.getElementById('formula-input').value = this.textContent;
+        recalculateAll();
+        
+        // Odeslat update ostatním
+        sendCellUpdate(cellId, this.textContent);
+    });
             applyConditionalFormatting();
         }
 
@@ -955,6 +1052,462 @@
 
         // Initialize on load
         initSpreadsheet();
-    </script>
+  // Globální proměnné pro správu projektu
+let currentProjectId = null;
+let currentPublicToken = null;
+let isCollaborating = false;
+const socket = io();
+
+// Cloud funkce
+function openCloudModal() {
+    document.getElementById('cloudModal').style.display = 'block';
+    loadProjectsList();
+}
+
+function closeCloudModal() {
+    document.getElementById('cloudModal').style.display = 'none';
+}
+
+function showSaveProjectModal() {
+    document.getElementById('saveProjectModal').style.display = 'block';
+}
+
+function closeSaveModal() {
+    document.getElementById('saveProjectModal').style.display = 'none';
+}
+
+function showShareModal() {
+    document.getElementById('shareModal').style.display = 'block';
+    updateShareInfo();
+}
+
+function closeShareModal() {
+    document.getElementById('shareModal').style.display = 'none';
+}
+
+async function saveProjectToCloud() {
+    const projectName = document.getElementById('projectName').value || `Tabulka ${new Date().toLocaleString()}`;
+    
+    const projectData = {
+        cellData: cellData,
+        rows: rows,
+        cols: cols,
+        effects: state.effects,
+        conditionalRules: conditionalRules
+    };
+
+    try {
+        const response = await fetch('/api/editor/projects', {
+            method: 'POST',
+            headers: {
+                'Authorization': localStorage.token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: projectName,
+                type: 'spreadsheet',
+                data: projectData
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            currentProjectId = result.project_id;
+            showStatus('Projekt uložen do cloudu', 'success');
+            closeSaveModal();
+            closeCloudModal();
+            updateShareButton();
+        } else {
+            showStatus('Chyba při ukládání', 'error');
+        }
+    } catch (error) {
+        showStatus('Chyba: ' + error.message, 'error');
+    }
+}
+
+async function loadProjectsList() {
+    try {
+        const response = await fetch('/api/editor/projects?type=spreadsheet', {
+            headers: {
+                'Authorization': localStorage.token
+            }
+        });
+
+        if (response.ok) {
+            const projects = await response.json();
+            displayProjectsList(projects);
+        } else {
+            showStatus('Chyba při načítání projektů', 'error');
+        }
+    } catch (error) {
+        showStatus('Chyba: ' + error.message, 'error');
+    }
+}
+
+function displayProjectsList(projects) {
+    const container = document.getElementById('projectsList');
+    container.innerHTML = '';
+
+    if (projects.length === 0) {
+        container.innerHTML = '<p>Žádné projekty v cloudu</p>';
+        return;
+    }
+
+    projects.forEach(project => {
+        const projectDiv = document.createElement('div');
+        projectDiv.className = 'project-item';
+        projectDiv.style.cssText = 'padding: 10px; border: 1px solid #555; margin: 5px 0; border-radius: 4px; background: #444;';
+        
+        projectDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${project.name}</strong>
+                    <div style="font-size: 0.8em; color: #ccc;">
+                        ${new Date(project.updated_at).toLocaleString()}
+                        ${project.is_public ? ' <span style="color: #4CAF50;">(Veřejný)</span>' : ''}
+                    </div>
+                </div>
+                <div>
+                    <button onclick="loadProject(${project.id})" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8em;">Načíst</button>
+                    <button onclick="deleteProject(${project.id})" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;">Smazat</button>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(projectDiv);
+    });
+}
+
+async function loadProject(projectId) {
+    try {
+        const response = await fetch(`/api/editor/projects/${projectId}`, {
+            headers: {
+                'Authorization': localStorage.token
+            }
+        });
+
+        if (response.ok) {
+            const project = await response.json();
+            loadProjectData(project);
+            currentProjectId = projectId;
+            currentPublicToken = project.public_token;
+            updateShareButton();
+            closeCloudModal();
+            showStatus('Projekt načten', 'success');
+            
+            // Připojení ke spolupráci pokud je projekt sdílený
+            if (project.is_public) {
+                joinCollaboration();
+            }
+        } else {
+            showStatus('Chyba při načítání projektu', 'error');
+        }
+    } catch (error) {
+        showStatus('Chyba: ' + error.message, 'error');
+    }
+}
+
+function loadProjectData(project) {
+    const data = project.data;
+    
+    // Obnovení dat tabulky
+    if (data.cellData) {
+        cellData = data.cellData;
+        // Překreslit všechny buňky
+        for (let key in cellData) {
+            const cell = document.getElementById(key);
+            if (cell) {
+                cell.textContent = cellData[key];
+            }
+        }
+    }
+    
+    // Obnovení podmíněného formátování
+    if (data.conditionalRules) {
+        conditionalRules = data.conditionalRules;
+        applyConditionalFormatting();
+    }
+    
+    recalculateAll();
+}
+
+async function deleteProject(projectId) {
+    if (!confirm('Opravdu chcete smazat tento projekt?')) return;
+
+    try {
+        const response = await fetch(`/api/editor/projects/${projectId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': localStorage.token
+            }
+        });
+
+        if (response.ok) {
+            showStatus('Projekt smazán', 'success');
+            loadProjectsList();
+            if (currentProjectId === projectId) {
+                currentProjectId = null;
+                currentPublicToken = null;
+                updateShareButton();
+            }
+        } else {
+            showStatus('Chyba při mazání projektu', 'error');
+        }
+    } catch (error) {
+        showStatus('Chyba: ' + error.message, 'error');
+    }
+}
+
+function updateShareButton() {
+    const shareBtn = document.getElementById('shareBtn');
+    if (currentProjectId) {
+        shareBtn.style.display = 'inline-block';
+    } else {
+        shareBtn.style.display = 'none';
+    }
+}
+
+function updateShareInfo() {
+    const shareInfo = document.getElementById('shareInfo');
+    const makePublicBtn = document.getElementById('makePublicBtn');
+    const makePrivateBtn = document.getElementById('makePrivateBtn');
+    
+    if (currentPublicToken) {
+        shareInfo.innerHTML = `
+            <p><strong>Projekt je veřejný</strong></p>
+            <p>Odkaz pro spolupráci:</p>
+            <input type="text" value="${window.location.origin}/tableeditor.html?collaborate=${currentPublicToken}" 
+                   readonly style="width: 100%; padding: 5px; background: #333; color: #fff; border: 1px solid #555;">
+            <p style="font-size: 0.9em; color: #ccc;">Sdílejte tento odkaz pro real-time spolupráci</p>
+        `;
+        makePublicBtn.style.display = 'none';
+        makePrivateBtn.style.display = 'inline-block';
+    } else {
+        shareInfo.innerHTML = '<p>Projekt je soukromý</p>';
+        makePublicBtn.style.display = 'inline-block';
+        makePrivateBtn.style.display = 'none';
+    }
+}
+
+async function shareProject() {
+    if (!currentProjectId) return;
+
+    try {
+        const response = await fetch(`/api/editor/projects/${currentProjectId}/share`, {
+            method: 'POST',
+            headers: {
+                'Authorization': localStorage.token,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            currentPublicToken = result.public_token;
+            updateShareInfo();
+            showStatus('Projekt je nyní veřejný', 'success');
+            
+            // Připojení ke spolupráci
+            joinCollaboration();
+        } else {
+            showStatus('Chyba při sdílení projektu', 'error');
+        }
+    } catch (error) {
+        showStatus('Chyba: ' + error.message, 'error');
+    }
+}
+
+async function unshareProject() {
+    if (!currentProjectId) return;
+
+    try {
+        const response = await fetch(`/api/editor/projects/${currentProjectId}/unshare`, {
+            method: 'POST',
+            headers: {
+                'Authorization': localStorage.token,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            currentPublicToken = null;
+            updateShareInfo();
+            showStatus('Projekt je nyní soukromý', 'success');
+            
+            // Opuštění spolupráce
+            leaveCollaboration();
+        } else {
+            showStatus('Chyba při zrušení sdílení', 'error');
+        }
+    } catch (error) {
+        showStatus('Chyba: ' + error.message, 'error');
+    }
+}
+
+// Socket.IO spolupráce
+function joinCollaboration() {
+    if (!currentPublicToken || isCollaborating) return;
+    
+    socket.emit('join_editor_collaboration', {
+        public_token: currentPublicToken,
+        user_token: localStorage.token,
+        project_type: 'spreadsheet'
+    });
+    
+    isCollaborating = true;
+    
+    // Naslouchání na updates od ostatních
+    socket.on('editor_update', (data) => {
+        if (data.socket_id !== socket.id && data.project_type === 'spreadsheet') {
+            applyRemoteUpdate(data.operation);
+        }
+    });
+    
+    socket.on('editor_user_joined', (data) => {
+        showStatus(`Uživatel ${data.username} se připojil ke spolupráci`, 'success');
+    });
+    
+    socket.on('editor_user_left', (data) => {
+        showStatus(`Uživatel ${data.username} opustil spolupráci`, 'info');
+    });
+}
+
+function leaveCollaboration() {
+    if (!currentPublicToken || !isCollaborating) return;
+    
+    socket.emit('leave_editor_collaboration', {
+        public_token: currentPublicToken,
+        user_token: localStorage.token
+    });
+    
+    socket.off('editor_update');
+    socket.off('editor_user_joined');
+    socket.off('editor_user_left');
+    
+    isCollaborating = false;
+}
+
+function applyRemoteUpdate(operation) {
+    // Aplikovat změny od ostatních uživatelů
+    if (operation.type === 'cell_change') {
+        const cell = document.getElementById(operation.cellId);
+        if (cell) {
+            cell.textContent = operation.value;
+            cellData[operation.cellId] = operation.value;
+        }
+    } else if (operation.type === 'full_sync') {
+        loadProjectData({ data: operation.data });
+    }
+}
+
+function sendCellUpdate(cellId, value) {
+    if (isCollaborating && currentPublicToken) {
+        socket.emit('editor_operation', {
+            public_token: currentPublicToken,
+            operation: {
+                type: 'cell_change',
+                cellId: cellId,
+                value: value
+            },
+            username: getCurrentUsername(),
+            project_type: 'spreadsheet'
+        });
+    }
+}
+
+function getCurrentUsername() {
+    // Získat username z tokenu nebo localStorage
+    return "User_" + Math.random().toString(36).substr(2, 5);
+}
+
+
+
+// Přidat funkci pro zobrazení statusu
+function showStatus(message, type) {
+    // Implementovat zobrazení status zpráv
+    console.log(`${type}: ${message}`);
+    alert(message); // Dočasně - nahradit lepším UI
+}
+
+// Načíst projekt z URL pokud je collaboration link
+window.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const collaborateToken = urlParams.get('collaborate');
+    
+    if (collaborateToken) {
+        joinPublicProject(collaborateToken);
+    }
+});
+
+async function joinPublicProject(token) {
+    try {
+        const response = await fetch(`/api/editor/projects/public/${token}`);
+        
+        if (response.ok) {
+            const project = await response.json();
+            loadProjectData(project);
+            currentProjectId = project.id;
+            currentPublicToken = token;
+            updateShareButton();
+            
+            // Automaticky se připojit ke spolupráci
+            joinCollaboration();
+            
+            showStatus('Připojeno k veřejnému projektu', 'success');
+        } else {
+            showStatus('Nelze načíst veřejný projekt', 'error');
+        }
+    } catch (error) {
+        showStatus('Chyba: ' + error.message, 'error');
+    }
+}
+</script>
+
+<!-- Přidám modální okna pro cloud operace -->
+<div id="cloudModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeCloudModal()">&times;</span>
+        <h2>Správa projektů v cloudu</h2>
+        
+        <div class="cloud-actions">
+            <button onclick="showSaveProjectModal()" class="btn btn-primary">💾 Uložit projekt</button>
+            <button onclick="loadProjectsList()" class="btn btn-secondary">📂 Načíst projekt</button>
+            <button onclick="showShareModal()" class="btn btn-success" id="shareBtn" style="display:none;">🔗 Sdílet projekt</button>
+        </div>
+
+        <div id="projectsList" style="margin-top: 20px; max-height: 300px; overflow-y: auto;">
+            <!-- Seznam projektů bude zde -->
+        </div>
+    </div>
+</div>
+
+<div id="saveProjectModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeSaveModal()">&times;</span>
+        <h2>Uložit projekt do cloudu</h2>
+        <input type="text" id="projectName" placeholder="Název projektu" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #555; border-radius: 4px; background: #555; color: #fff;">
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button onclick="saveProjectToCloud()" class="btn btn-primary">Uložit</button>
+            <button onclick="closeSaveModal()" class="btn btn-secondary">Zrušit</button>
+        </div>
+    </div>
+</div>
+
+<div id="shareModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeShareModal()">&times;</span>
+        <h2>Sdílet projekt</h2>
+        <div id="shareInfo" style="margin-bottom: 15px;"></div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="shareProject()" class="btn btn-success" id="makePublicBtn">🌐 Vytvořit veřejný odkaz</button>
+            <button onclick="unshareProject()" class="btn btn-danger" id="makePrivateBtn" style="display:none;">🔒 Zrušit sdílení</button>
+            <button onclick="closeShareModal()" class="btn btn-secondary">Zavřít</button>
+        </div>
+    </div>
+</div>
+
+
+
+
 </body>
 </html>

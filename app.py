@@ -20,7 +20,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 DB = "users.db"
 UPLOAD_FOLDER = "cloud_storage"
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM', 'upppt', 'json'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -33,14 +33,17 @@ CONVERTAPI_SECRET = "Sf9JecGzQNCmcQhGDUX29TY1y9F5Vrq1"  # Z ConvertAPI dashboard
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def db():
-    return sqlite3.connect(DB)
+    return sqlite3.connect(DB, timeout=10, check_same_thread=False)
 
 # ----------- UTIL -----------
 def generate_token():
     return secrets.token_hex(32)
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {
+        'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM', 
+        'upppt', 'json', 'stl', 'obj', 'gltf', 'glb'  # PŘIDÁNO
+    }
 
 def get_user_id_from_token(token):
     if not token:
@@ -82,8 +85,17 @@ def cloud_upload():
         file_path = os.path.join(user_dir, stored_filename)
         file.save(file_path)
         
-        # Get file type
-        file_type = 'image' if file_extension in ['png', 'jpg', 'jpeg', 'gif', 'webm', 'WebM'] else 'document'
+        # Get file type - ROZŠÍŘENÁ DETEKCE TYPU
+        if file_extension in ['png', 'jpg', 'jpeg', 'gif', 'webm', 'WebM']:
+            file_type = 'image'
+        elif file_extension in ['doc', 'docx', 'pdf']:
+            file_type = 'document'
+        elif file_extension in ['upppt', 'json']:
+            file_type = 'presentation'
+        elif file_extension in ['stl', 'obj', 'gltf', 'glb']:
+            file_type = '3d_model'
+        else:
+            file_type = 'other'
         
         # Store file info in database
         con = db()
@@ -93,12 +105,14 @@ def cloud_upload():
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (user_id, original_filename, stored_filename, file_type, os.path.getsize(file_path), datetime.now(), None))
         con.commit()
+        file_id_db = cur.lastrowid
         con.close()
         
         return jsonify({
             "message": "File uploaded successfully",
-            "file_id": cur.lastrowid,
-            "filename": original_filename
+            "file_id": file_id_db,
+            "filename": original_filename,
+            "file_type": file_type
         })
     
     return jsonify({"error": "Invalid file type"}), 400
@@ -460,6 +474,10 @@ def get_collaboration_session(public_token):
 
 @app.route("/app.py")
 def noaccess():
+    return Response("{'error':'ACCESS DENIED'}", status=403, mimetype='application/json')
+
+@app.route("/nohup.out")
+def nohupnoaccess():
     return Response("{'error':'ACCESS DENIED'}", status=403, mimetype='application/json')
 
 @app.route("/users.db")
@@ -1490,4 +1508,4 @@ if __name__ == "__main__":
     con.commit()
     con.close()
     
-    app.run(host="0.0.0.0", port=1144)
+    app.run(host="0.0.0.0", port=1234)
