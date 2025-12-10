@@ -12,6 +12,9 @@ import requests
 import time
 import json
 from flask_socketio import SocketIO, emit, join_room, leave_room
+import math
+import random
+import statistics
 
 app = Flask(__name__, static_folder="static")
 
@@ -1354,6 +1357,197 @@ def share_3d_project(project_id):
         "message": "Projekt je nyní veřejný",
         "public_url": f"/api/3d/projects/public/{public_token}"
     })
+
+# ----------- CALCULATOR ENDPOINTS -----------
+
+@app.route("/api/calc/python", methods=["POST"])
+def calc_python():
+    """Evaluate Python code safely for calculator"""
+    data = request.json
+    code = data.get("code", "")
+    
+    if not code:
+        return jsonify({"error": "No code provided"}), 400
+    
+    # Basic security: limit length and check for dangerous imports
+    if len(code) > 1000:
+        return jsonify({"error": "Code too long"}), 400
+    
+    # Blacklist dangerous operations
+    dangerous_patterns = [
+        "__import__", "import ", "from ", "exec", "eval", "compile",
+        "open", "file", "os.", "sys.", "subprocess", "shutil",
+        "rm ", "del ", "breakpoint", "globals", "locals"
+    ]
+    
+    for pattern in dangerous_patterns:
+        if pattern in code:
+            return jsonify({"error": f"Operation not allowed: {pattern}"}), 400
+    
+    try:
+        # Create restricted globals
+        safe_globals = {
+            "__builtins__": {
+                'abs': abs, 'round': round, 'min': min, 'max': max, 'sum': sum,
+                'int': int, 'float': float, 'str': str, 'bool': bool,
+                'len': len, 'range': range, 'list': list, 'tuple': tuple,
+                'dict': dict, 'set': set
+            },
+            'math': {
+                'sin': math.sin, 'cos': math.cos, 'tan': math.tan,
+                'asin': math.asin, 'acos': math.acos, 'atan': math.atan,
+                'atan2': math.atan2, 'sinh': math.sinh, 'cosh': math.cosh,
+                'tanh': math.tanh, 'log': math.log, 'log10': math.log10,
+                'log2': math.log2, 'exp': math.exp, 'sqrt': math.sqrt,
+                'pow': math.pow, 'pi': math.pi, 'e': math.e,
+                'ceil': math.ceil, 'floor': math.floor, 'trunc': math.trunc,
+                'degrees': math.degrees, 'radians': math.radians,
+                'factorial': math.factorial, 'gcd': math.gcd,
+                'hypot': math.hypot, 'isclose': math.isclose
+            },
+            'random': {
+                'random': random.random,
+                'randint': random.randint,
+                'uniform': random.uniform,
+                'choice': random.choice,
+                'shuffle': random.shuffle,
+                'sample': random.sample,
+                'seed': random.seed
+            },
+            'statistics': {
+                'mean': statistics.mean,
+                'median': statistics.median,
+                'mode': statistics.mode,
+                'stdev': statistics.stdev,
+                'variance': statistics.variance
+            }
+        }
+        
+        # Evaluate the code
+        result = eval(code, safe_globals, {})
+        
+        # Convert result to string
+        if result is None:
+            result_str = "None"
+        elif isinstance(result, (int, float)):
+            result_str = str(result)
+        elif isinstance(result, (list, tuple, dict, set)):
+            result_str = str(result)
+        else:
+            result_str = str(result)
+        
+        return jsonify({"result": result_str})
+        
+    except SyntaxError as e:
+        return jsonify({"error": f"Syntax error: {str(e)}"}), 400
+    except NameError as e:
+        return jsonify({"error": f"Name error: {str(e)}"}), 400
+    except TypeError as e:
+        return jsonify({"error": f"Type error: {str(e)}"}), 400
+    except ValueError as e:
+        return jsonify({"error": f"Value error: {str(e)}"}), 400
+    except ZeroDivisionError as e:
+        return jsonify({"error": "Division by zero"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Calculation error: {str(e)}"}), 400
+
+
+@app.route("/api/calc/history", methods=["GET"])
+def get_calc_history():
+    """Get calculator history for user"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    
+    # Create table if not exists
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS calculator_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            expression TEXT NOT NULL,
+            result TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+    
+    # Get user's history
+    cur.execute("""
+        SELECT expression, result, mode, timestamp 
+        FROM calculator_history 
+        WHERE user_id=? 
+        ORDER BY timestamp DESC 
+        LIMIT 50
+    """, (user_id,))
+    
+    history = []
+    for row in cur.fetchall():
+        history.append({
+            "expression": row[0],
+            "result": row[1],
+            "mode": row[2],
+            "timestamp": row[3]
+        })
+    
+    con.close()
+    return jsonify(history)
+
+
+@app.route("/api/calc/history", methods=["POST"])
+def save_calc_history():
+    """Save calculator history entry"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    expression = data.get("expression", "")
+    result = data.get("result", "")
+    mode = data.get("mode", "basic")
+    
+    if not expression or not result:
+        return jsonify({"error": "Missing data"}), 400
+    
+    con = db()
+    cur = con.cursor()
+    
+    cur.execute("""
+        INSERT INTO calculator_history (user_id, expression, result, mode)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, expression, result, mode))
+    
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "History saved"})
+
+
+@app.route("/api/calc/history/clear", methods=["POST"])
+def clear_calc_history():
+    """Clear calculator history for user"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    
+    cur.execute("DELETE FROM calculator_history WHERE user_id=?", (user_id,))
+    
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "History cleared"})
 
 @app.route("/api/3d/projects/<int:project_id>/unshare", methods=["POST"])
 def unshare_3d_project(project_id):
