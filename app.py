@@ -23,7 +23,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 DB = "users.db"
 UPLOAD_FOLDER = "cloud_storage"
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM', 'upppt', 'json'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM', 'upppt', 'json', 'stl', 'obj', 'gltf', 'glb', 'svg'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -97,6 +97,8 @@ def cloud_upload():
             file_type = 'presentation'
         elif file_extension in ['stl', 'obj', 'gltf', 'glb']:
             file_type = '3d_model'
+        elif file_extension in ['svg', 'json']:
+            file_type = 'vector'
         else:
             file_type = 'other'
         

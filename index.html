@@ -147,6 +147,7 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
+            margin-right: 2px;
         }
 
         .new-project-btn:hover {
@@ -198,6 +199,8 @@
         .videoaudioeditor { background-color: var(--media-editor); }
         .threeeditor { background-color: var(--3d-editor); }
         .ide {background-color: #44410c;}
+        .vectors {background-color: #0f440c;}
+        .audioeditor {background-color: #8a2be2;}
 
         @media (max-width: 768px) {
             header {
@@ -224,6 +227,20 @@
                 font-size: 1.2rem;
             }
         }
+        .appbtn {
+            background-color: var(--header-bg);
+            color: var(--text-light);
+            border: none;
+            border-radius: 8px;
+            padding: 1.5rem 3rem;
+            font-size: 2rem;
+            font-family: 'Roboto Mono', monospace;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            margin-left: 2px;
+        }
     </style>
 </head>
 <body>
@@ -234,7 +251,7 @@
                 <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
                 <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li>
                 <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li>
-                <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li>
+                <li class="nav-item"><a href="Suportus.html" class="nav-link">Support Us</a></li>
                 <li class="nav-item"><a href="cloud.html" class="nav-link">Cloud Storage</a></li>
                 <li class="nav-item login-container">
                     <a href="Login.html" class="nav-link login-link">👨‍🚒</a>
@@ -248,17 +265,20 @@
         <section class="hero">
             <p class="hero-text">We are students for students. We offer free to use office and media editors.</p>
             <button class="new-project-btn" id="menuBtn">NEW PROJECT</button>
+            <a href="appstore.html"><button class="appbtn" id="menuBtn">APP STORE</button></a>
             <div class="editors-menu" id="navMenu">
-                <button class="editor-btn texteditor">Text Editor</button>
-                <button class="editor-btn documenteditor">Document Editor</button>
+                <button class="editor-btn texteditor">Text Editor (plain text)</button>
+                <button class="editor-btn documenteditor">Document Editor (rich text)</button>
                 <button class="editor-btn tableeditor">Table Editor</button>
-                <button class="editor-btn presentationeditor">Presentation Editor</button>
+                <button class="editor-btn presentationeditor">Presentation (PPTX) Editor</button>
                 <button class="editor-btn pictureeditor">Image Editor</button>
-                <button class="editor-btn pictureeditorretro">Image Editor (Retro)</button>
+                <button class="editor-btn pictureeditorretro">Image Editor (Retro edition)</button>
                 <button class="editor-btn videoaudioeditor">Video & Audio Editor</button>
                 <button class="editor-btn triDeditor">3D Editor</button>
                 <button class="editor-btn ide">IDE (code editor)</button>
                 <button class="editor-btn calculator">Calculator</button>
+                <button class="editor-btn vectors">Vector editor</button>
+                <button class="editor-btn audioeditor">Audio editor</button>
             </div>
         </section>
 <section id="recentFilesSection" style="display: none; max-width: 1200px; margin: 3rem auto; padding: 0 2rem;">
@@ -276,10 +296,12 @@
 </section>
     </main>
     <footer><center><b><a href="https://github.com/schmic75-gasos/UpperOffice/" style="color: white;">Find us on Github</a></b></center>
+        <center><a href="mailto:info@upperoffice.site" style="color: white;">Send us a mail</a></center>
+        <center><a href="mailto:owner@upperoffice.site" style="color: white;">Send mail to owner of this project</a></center>
     <br>
     <center><b>Author(s) of this project comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law.</b></center>
-    <center><i>&copy; Michal Schneider &amp; Markéta Čadová, 2025</i></center>
-    <center>UPPEROFFICE WEB EDITION, VERSION 0.3.4</center>
+    <center><i>&copy; Michal Schneider (helper, checker, propagator, server administrator, GitHub administrator, backend developer, writer) &amp; PlagueSurvivor (ideas, styles, structure, name of the project, director, owner of this project, Facebook site administrator, frontend developer), 2025</i></center>
+    <center>UPPEROFFICE WEB EDITION, VERSION 0.3.5</center>
     </footer>
 
     <script>
