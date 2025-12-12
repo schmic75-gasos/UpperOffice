@@ -59,6 +59,7 @@ def get_user_id_from_token(token):
     return row[0] if row else None
 
 # ----------- CLOUD STORAGE -----------
+
 @app.route("/api/cloud/upload", methods=["POST"])
 def cloud_upload():
     token = request.headers.get("Authorization")
@@ -75,20 +76,35 @@ def cloud_upload():
         return jsonify({"error": "No file selected"}), 400
     
     if file and allowed_file(file.filename):
-        # Generate unique filename
+        # Kontrola limitu před uploadem
+        file.seek(0, 2)  # Přesun na konec souboru
+        file_size = file.tell()
+        file.seek(0)  # Návrat na začátek
+        
+        storage_check = check_storage_limit(user_id, file_size)
+        if not storage_check["allowed"]:
+            return jsonify({
+                "error": "Storage limit exceeded",
+                "details": storage_check,
+                "message": f"You have used {storage_check['current_usage'] / (1024*1024):.2f} MB of {storage_check['max_storage'] / (1024*1024):.2f} MB available storage."
+            }), 400
+        
+        # Pokračování v původním kódu pro upload
         file_id = str(uuid.uuid4())
         original_filename = secure_filename(file.filename)
         file_extension = original_filename.rsplit('.', 1)[1].lower()
         stored_filename = f"{file_id}.{file_extension}"
         
-        # Create user directory if not exists
         user_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}")
         os.makedirs(user_dir, exist_ok=True)
         
         file_path = os.path.join(user_dir, stored_filename)
         file.save(file_path)
         
-        # Get file type - ROZŠÍŘENÁ DETEKCE TYPU
+        # Získání skutečné velikosti souboru
+        actual_file_size = os.path.getsize(file_path)
+        
+        # Detekce typu souboru
         if file_extension in ['png', 'jpg', 'jpeg', 'gif', 'webm', 'WebM']:
             file_type = 'image'
         elif file_extension in ['doc', 'docx', 'pdf']:
@@ -97,31 +113,45 @@ def cloud_upload():
             file_type = 'presentation'
         elif file_extension in ['stl', 'obj', 'gltf', 'glb']:
             file_type = '3d_model'
-        elif file_extension in ['svg', 'json']:
+        elif file_extension in ['svg']:
             file_type = 'vector'
         else:
             file_type = 'other'
         
-        # Store file info in database
+        # Uložení do databáze
         con = db()
         cur = con.cursor()
         cur.execute("""
             INSERT INTO cloud_files (user_id, original_filename, stored_filename, file_type, file_size, upload_date, public_token)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (user_id, original_filename, stored_filename, file_type, os.path.getsize(file_path), datetime.now(), None))
+        """, (user_id, original_filename, stored_filename, file_type, actual_file_size, datetime.now(), None))
         con.commit()
         file_id_db = cur.lastrowid
+        
+        # Aktualizace využití úložiště
+        update_storage_usage(user_id)
+        
+        # Záznam do historie
+        cur.execute("""
+            INSERT INTO storage_history (user_id, action, file_id, file_size)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, 'upload', file_id_db, actual_file_size))
+        con.commit()
         con.close()
         
         return jsonify({
             "message": "File uploaded successfully",
             "file_id": file_id_db,
             "filename": original_filename,
-            "file_type": file_type
+            "file_type": file_type,
+            "file_size": actual_file_size,
+            "storage_info": check_storage_limit(user_id)
         })
     
     return jsonify({"error": "Invalid file type"}), 400
 
+
+# Upravte endpoint cloud_files pro zahrnutí velikostí
 @app.route("/api/cloud/files", methods=["GET"])
 def cloud_files():
     token = request.headers.get("Authorization")
@@ -148,7 +178,7 @@ def cloud_files():
             "size": row[3],
             "upload_date": row[4],
             "is_public": row[5] is not None,
-            "public_token": row[5],  # PŘIDÁNO - toto chybělo!
+            "public_token": row[5],
             "public_url": f"/api/cloud/public/{row[5]}" if row[5] else None
         })
     
@@ -166,25 +196,40 @@ def cloud_delete_file(file_id):
     con = db()
     cur = con.cursor()
     
-    # Verify ownership
-    cur.execute("SELECT stored_filename FROM cloud_files WHERE id=? AND user_id=?", (file_id, user_id))
+    # Získání informací o souboru
+    cur.execute("SELECT stored_filename, file_size FROM cloud_files WHERE id=? AND user_id=?", (file_id, user_id))
     file_data = cur.fetchone()
     
     if not file_data:
         con.close()
         return jsonify({"error": "File not found"}), 404
     
-    # Delete file from filesystem
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}", file_data[0])
+    stored_filename, file_size = file_data
+    
+    # Smazání souboru z filesystemu
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}", stored_filename)
     if os.path.exists(file_path):
         os.remove(file_path)
     
-    # Delete from database
+    # Smazání z databáze
     cur.execute("DELETE FROM cloud_files WHERE id=?", (file_id,))
+    
+    # Záznam do historie
+    cur.execute("""
+        INSERT INTO storage_history (user_id, action, file_id, file_size)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, 'delete', file_id, -file_size))
+    
     con.commit()
     con.close()
     
-    return jsonify({"message": "File deleted successfully"})
+    # Aktualizace využití úložiště
+    update_storage_usage(user_id)
+    
+    return jsonify({
+        "message": "File deleted successfully",
+        "storage_info": check_storage_limit(user_id)
+    })
 
 @app.route("/api/cloud/files/<int:file_id>/share", methods=["POST"])
 def cloud_share_file(file_id):
@@ -1359,6 +1404,85 @@ def share_3d_project(project_id):
         "message": "Projekt je nyní veřejný",
         "public_url": f"/api/3d/projects/public/{public_token}"
     })
+# Přidejte nový endpoint pro získání informací o úložišti
+@app.route("/api/cloud/storage/info", methods=["GET"])
+def get_storage_info():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    storage_info = check_storage_limit(user_id)
+    
+    # Získání historie využití
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT 
+            strftime('%Y-%m', timestamp) as month,
+            SUM(CASE WHEN action = 'upload' THEN file_size ELSE 0 END) as uploads,
+            SUM(CASE WHEN action = 'delete' THEN file_size ELSE 0 END) as deletes,
+            COUNT(*) as actions
+        FROM storage_history 
+        WHERE user_id = ? 
+        GROUP BY strftime('%Y-%m', timestamp)
+        ORDER BY month DESC
+        LIMIT 6
+    """, (user_id,))
+    
+    history = cur.fetchall()
+    con.close()
+    
+    return jsonify({
+        "storage_info": storage_info,
+        "history": [
+            {
+                "month": row[0],
+                "uploads": row[1],
+                "deletes": row[2],
+                "actions": row[3]
+            } for row in history
+        ]
+    })
+
+# Přidejte endpoint pro získání detailů o velikosti souborů podle typu
+@app.route("/api/cloud/storage/breakdown", methods=["GET"])
+def get_storage_breakdown():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT 
+            file_type,
+            COUNT(*) as file_count,
+            SUM(file_size) as total_size,
+            AVG(file_size) as avg_size
+        FROM cloud_files 
+        WHERE user_id = ? 
+        GROUP BY file_type
+        ORDER BY total_size DESC
+    """, (user_id,))
+    
+    breakdown = cur.fetchall()
+    con.close()
+    
+    return jsonify({
+        "breakdown": [
+            {
+                "type": row[0],
+                "count": row[1],
+                "total_size": row[2],
+                "avg_size": row[3]
+            } for row in breakdown
+        ]
+    })
+
 
 # ----------- CALCULATOR ENDPOINTS -----------
 
@@ -1615,6 +1739,146 @@ def handle_3d_operation(data):
     except Exception as e:
         print(f"Error in 3d_operation: {e}")
 
+# Přidejte funkci pro kontrolu úložiště
+def check_storage_limit(user_id, additional_size=0):
+    """Zkontroluje, zda uživatel nepřekračuje limit úložiště"""
+    con = db()
+    cur = con.cursor()
+    
+    # Získání aktuálního využití
+    cur.execute("""
+        SELECT COALESCE(SUM(file_size), 0) 
+        FROM cloud_files 
+        WHERE user_id=?
+    """, (user_id,))
+    
+    current_usage = cur.fetchone()[0] or 0
+    
+    # Získání limitu
+    cur.execute("""
+        SELECT max_storage_bytes 
+        FROM user_storage_limits 
+        WHERE user_id=?
+    """, (user_id,))
+    
+    limit_row = cur.fetchone()
+    if limit_row:
+        max_storage = limit_row[0]
+    else:
+        # Výchozí limit: 170,000,000 bytů (~162 MB)
+        max_storage = 170000000
+        cur.execute("""
+            INSERT OR REPLACE INTO user_storage_limits (user_id, max_storage_bytes)
+            VALUES (?, ?)
+        """, (user_id, max_storage))
+        con.commit()
+    
+    con.close()
+    
+    # Výpočet procenta využití
+    usage_percentage = (current_usage / max_storage) * 100 if max_storage > 0 else 0
+    
+    # Kontrola překročení limitu
+    if current_usage + additional_size > max_storage:
+        return {
+            "allowed": False,
+            "current_usage": current_usage,
+            "max_storage": max_storage,
+            "usage_percentage": usage_percentage,
+            "available": max_storage - current_usage
+        }
+    else:
+        return {
+            "allowed": True,
+            "current_usage": current_usage,
+            "max_storage": max_storage,
+            "usage_percentage": usage_percentage,
+            "available": max_storage - current_usage - additional_size
+        }
+
+def update_storage_usage(user_id):
+    """Aktualizuje záznam o využití úložiště"""
+    con = db()
+    cur = con.cursor()
+    
+    cur.execute("""
+        SELECT COALESCE(SUM(file_size), 0) 
+        FROM cloud_files 
+        WHERE user_id=?
+    """, (user_id,))
+    
+    current_usage = cur.fetchone()[0] or 0
+    
+    cur.execute("""
+        INSERT OR REPLACE INTO user_storage_limits 
+        (user_id, used_storage_bytes, last_updated)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+    """, (user_id, current_usage))
+    
+    con.commit()
+    con.close()
+
+# ----------- IMAGE PREVIEW ENDPOINTS -----------
+
+@app.route("/api/cloud/preview/<int:file_id>", methods=["GET"])
+def cloud_get_preview(file_id):
+    """Endpoint pro získání náhledu obrázku"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    cur.execute("SELECT user_id, stored_filename, original_filename, file_type FROM cloud_files WHERE id=? AND user_id=?", (file_id, user_id))
+    file_data = cur.fetchone()
+    con.close()
+    
+    if not file_data:
+        return jsonify({"error": "File not found"}), 404
+    
+    user_id, stored_filename, original_filename, file_type = file_data
+    
+    # Kontrola, zda je soubor obrázek
+    if file_type not in ['image', 'vector']:
+        return jsonify({"error": "File is not an image"}), 400
+    
+    user_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}")
+    file_path = os.path.join(user_dir, stored_filename)
+    
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+    
+    return send_file(file_path, as_attachment=False)
+
+@app.route("/api/cloud/preview/public/<token>", methods=["GET"])
+def cloud_get_public_preview(token):
+    """Endpoint pro získání veřejného náhledu obrázku"""
+    con = db()
+    cur = con.cursor()
+    cur.execute("SELECT user_id, stored_filename, original_filename, file_type FROM cloud_files WHERE public_token=?", (token,))
+    file_data = cur.fetchone()
+    con.close()
+    
+    if not file_data:
+        return jsonify({"error": "File not found"}), 404
+    
+    user_id, stored_filename, original_filename, file_type = file_data
+    
+    # Kontrola, zda je soubor obrázek
+    if file_type not in ['image', 'vector']:
+        return jsonify({"error": "File is not an image"}), 400
+    
+    user_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}")
+    file_path = os.path.join(user_dir, stored_filename)
+    
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+    
+    return send_file(file_path, as_attachment=False)
+
+
 
 # ----------- STATIC FILES -----------
 @app.route("/", defaults={"path": "index.html"})
@@ -1700,6 +1964,29 @@ if __name__ == "__main__":
         FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS user_storage_limits (
+        user_id INTEGER PRIMARY KEY,
+        max_storage_bytes INTEGER DEFAULT 170000000, -- 162 MB v bytech
+        used_storage_bytes INTEGER DEFAULT 0,
+        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS storage_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        action TEXT NOT NULL, -- 'upload' nebo 'delete'
+        file_id INTEGER,
+        file_size INTEGER,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        FOREIGN KEY (file_id) REFERENCES cloud_files (id)
+    )
+    """)
+
 
     con.commit()
     con.close()
