@@ -4,3 +4,7 @@ lib/
 cloud_storage/
 users.db
 úvod.txt
+nohup.out
+__pycache__/
+*.pyc
+pyvenv.cfg
