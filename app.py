@@ -35,19 +35,19 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm',
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # CloudConvert API configuration
-CLOUDCONVERT_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzIxMTIwZDY5MmE0OWMwZjZkY2RhNmQxYWQ5YzBmMDAyYjEyODk2NDE4ZDZjOWNiZDQyNWU5ZGE4ZTk1YjcyNjM0NzVhZmU0YTU3ZjNjZTEiLCJpYXQiOjE3NjM1NzI5MzQuNDU5NTA2LCJuYmYiOjE3NjM1NzI5MzQuNDU5NTA3LCJleHAiOjQ5MTkyNDY1MzQuNDU1NDI0LCJzdWIiOiI3MzUxNzMxNCIsInNjb3BlcyI6WyJ0YXNrLnJlYWQiLCJ0YXNrLndyaXRlIiwicHJlc2V0LnJlYWQiLCJwcmVzZXQud3JpdGUiXX0.fVT6fVrfpN1Zh0MHeu24eI1r6bozGxh1h57SLRhD6bMyfxrJDpxgtwovXuIQ52_liUyS6kDy80ZahGjm0v3UwiwiVf9V1s7T-OD4tN4lbhG78TmGaTo-nWT37T-dKgCbqbWJ6EHmrm_5XhHmAlYYsETt22-8oU6pTMN6OiadKh__ehO16kHY7x5F_UdI_vsK_UcCTVgGRGWEoMWQF6ssLB9t3Dljn0BkInT1VbhwnrxiQaNqt0_o5Nh0uHVWmldOq2dg3PfpQlYjR9EOtj_z32usABwf1s49ZmF1w0rk-mv8aGxspItSOjPQgmVvwf-LOnpzX8F5-XmwcVIFNJIekHm4vFjArINrJ6pekvb6m63T4re9DHYVTHazvL1_fvh5BkxHr5H93vuwZrbQivdV8eJOSSBcfgbP5biltY2l2CEA5GesckQv67MXr8PkrK-siIOBoXotFVjss6CXJ4d2ijm_bp07LznTfee15l3UqY7a6GgQusLsVARrJHGKAppU6JhmqjygOrwBDM0QXwL2AxrGUVO_PtZ8e9jgD8d24JcoAkW0lDgTaQGh_WgN1UC3RIJFke8uRcZUvYQTODVAw94WjCjP6ceaojLrr6ktR4p8z2EUkupTg4WifO8hUZyx5tgxTTrWMxT0W5px-IpjBqB0AXwKFzb79G-EwxMVpvI"  # Získejte zdarma na cloudconvert.com
-CONVERTAPI_SECRET = "Sf9JecGzQNCmcQhGDUX29TY1y9F5Vrq1"  # Z ConvertAPI dashboard
+CLOUDCONVERT_API_KEY = "CHANGE_ME"
+CONVERTAPI_SECRET = "CHANGE_ME"  # Z ConvertAPI dashboard
 
 
 # Create upload directory if not exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app.secret_key = "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"  # potřebné pro session
+app.secret_key = "CHANGE_ME"  # potřebné pro session
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Povolit HTTP při vývoji
 
-GOOGLE_CLIENT_ID = "212860242226-jahdhnflbbn47n22b8vk2i0avulnl6ei.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
+#GOOGLE_CLIENT_ID = "CHANGE_ME"
+#GOOGLE_CLIENT_SECRET = "CHANGE_ME"
 
 flow = Flow.from_client_config(
     {
