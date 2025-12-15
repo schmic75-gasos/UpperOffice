@@ -3,13 +3,16 @@
 <head> <!--HEAD SEKCE - TO, CO NENÍ VIDĚT - NASTAVENÍ APOD.-->
     <meta charset="utf-8"> <!--KÓDOVÁNÍ UTF-8 - ČESKÁ DIAKRITIKA, SPECIÁLNÍ ZNAKY APOD. - NUTNOST-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--ZÁKLAD PRO RESPONZIVNÍ DESIGN-->
-    <title>Swarm Office - <!--NÁZEV STRÁNKY--></title>
+    <title>Upper Office - <!--NÁZEV STRÁNKY--></title>
     <link rel="stylesheet" href="untiteld-1.CSS" type="text/css"> <!--PROPOJENÍ S NAŠÍM CSS SOUBOREM - JE DŮLEŽITÉ, ABY KAŽDÁ STRÁNKA MĚLA NÁZVY TAGŮ V SOUHLADU S OBECNÝMI CSS STYLY.-->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"> <!--PROPOJENÍ S GOOGLE FONTS - PÍSMO-->
 </head> <!--KONEC HEAD SEKCE - NEZAPOMEŇ SPRÁVNĚ UKONČOVAT TAGY.-->
 <body> <!--VIDITELNÉ TĚLO STRÁNKY-->
+    <div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
     <header> <!--HLAVIČKA-->
-        <a href="index.html" class="logo">SWARM OFFICE</a> <!--VŽDY STEJNÉ-->
+        <a href="index.html" class="logo">Upper OFFICE</a> <!--VŽDY STEJNÉ-->
         <div class="navigation"> <!--VŽDY STEJNÉ-->
             <nav> <!--VŽDY STEJNÉ-->
                 <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li> <!--VŽDY STEJNÉ-->
@@ -58,9 +61,9 @@
 </head>
 <body>
 
-<h2>Jednoduchý textový editor</h2>
+<h2>Simple plain text editor</h2>
 
-<textarea id="editor" placeholder="Piš sem text..."></textarea><br>
+<textarea id="editor" placeholder="Write plain text here...."></textarea><br>
 
 <button onclick="saveText()">Exportovat jako .txt</button>
 
@@ -79,6 +82,8 @@ function saveText() {
     URL.revokeObjectURL(url);
 }
 </script>
+<br>
+<footer><i style="color:black;">For advanced edits, please use <a href="documenteditor.html">Document editor.</a></i></footer>
 
 </body>
 </html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account Management - UPPER Office</title><link rel="stylesheet" href="untiteld-1.CSS" type="text/css"><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></head><body><div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script><header><a href="index.html" class="logo">UPPER OFFICE</a><div class="navigation"><nav><li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li><li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li><li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li><li class="nav-item"><a href="Suportus.html" class="nav-link">Support Us</a></li><li class="nav-item"><a href="cloud.html" class="nav-link">Cloud Storage</a></li><li class="nav-item"><a href="account.html" class="nav-link">Account</a></li><li class="nav-item login-container"><a href="Login.html" class="nav-link login-link">👨‍🚒</a><div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div></li></nav></div></header><div class="lgnsgu"><div class="box"><h2>Account Management</h2><div id="userInfo" style="margin-bottom:2rem"><h3>User Information</h3><p><strong>Username: </strong><span id="usernameDisplay">Loading...</span></p></div><div id="changePasswordSection"><h3>Change Password</h3><input type="password" id="currentPassword" placeholder="Current Password"> <input type="password" id="newPassword" placeholder="New Password"> <input type="password" id="confirmPassword" placeholder="Confirm New Password"><button onclick="changePassword()">Change Password</button><div id="passwordMessage" style="margin-top:1rem;font-size:.9rem"></div></div><div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--input-border)"><button onclick="logout()" style="background-color:var(--danger,#ef4444);width:100%">Logout</button><p style="font-size:.8rem;color:#aaa;margin-top:1rem">Note: Logging out will remove your session from this device.</p></div></div></div><script>// Check authentication
+        if (!localStorage.token) {
+            window.location.href = "Login.html";
+        }
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': localStorage.token
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('usernameDisplay').textContent = data.username;
+                } else {
+                    alert('Failed to load user information. Please login again.');
+                    window.location.href = 'Login.html';
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+async function changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showMessage('Please fill in all fields.', 'error');
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        showMessage('New passwords do not match.', 'error');
+        return;
+    }
+    if (newPassword.length < 6) {
+        showMessage('New password must be at least 6 characters.', 'error');
+        return;
+    }
+    showMessage('Changing password...', 'info');
+    try {
+        const response = await fetch('/api/change-password', {
+            method: 'POST',
+            headers: {
+                'Authorization': localStorage.token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                old_password: currentPassword,
+                new_password: newPassword
+            })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            showMessage('Password changed successfully! Please login again.', 'success');
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            setTimeout(() => {
+                logout();
+            }, 2000);
+        } else {
+            showMessage(data.error || 'Failed to change password.', 'error');
+        }
+    } catch (error) {
+        console.error('Error changing password:', error);
+        showMessage('Error changing password. Please try again.', 'error');
+    }
+}
+async function logout() {
+    try {
+        const response = await fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': localStorage.token
+            }
+        });
+        localStorage.removeItem('token');
+        window.location.href = 'Login.html';
+    } catch (error) {
+        console.error('Error during logout:', error);
+        localStorage.removeItem('token');
+        window.location.href = 'Login.html';
+    }
+}
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('passwordMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.color = type === 'success' ? 'var(--success, #10b981)' : 'var(--danger, #ef4444)';
+            messageDiv.style.fontWeight = '600';
+            setTimeout(() => {
+                messageDiv.textContent = '';
+            }, 5000);
+        }
+        document.addEventListener('DOMContentLoaded', loadUserInfo);</script></body></html>

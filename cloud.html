@@ -1,920 +1,173 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Storage - UPPER Office</title>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --bg-light: #ffffff;
-            --bg-secondary: #f8fafc;
-            --text-dark: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-secondary);
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
-
-        .header {
-            background: var(--bg-light);
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        .upload-area {
-            background: var(--bg-light);
-            border: 2px dashed var(--border);
-            border-radius: 16px;
-            padding: 3rem;
-            text-align: center;
-            margin-bottom: 2rem;
-            transition: all 0.3s;
-            position: relative;
-        }
-
-        .upload-area:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-
-        .upload-area.dragover {
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.05);
-        }
-
-        .upload-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 4px;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.3s;
-            border-radius: 0 0 16px 16px;
-        }
-
-        /* Filter Section Styles */
-        .filter-section {
-            background: var(--bg-light);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .filter-row {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-
-        .filter-group {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .filter-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--text-dark);
-        }
-
-        .filter-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-
-        .filter-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .filter-select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            background-color: var(--bg-light);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .filter-select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .filter-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .files-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .file-card {
-            background: var(--bg-light);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .file-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-
-        .file-preview {
-            height: 160px;
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .file-preview img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .file-icon {
-            font-size: 3rem;
-            opacity: 0.7;
-        }
-
-        .file-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: var(--primary);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .file-info {
-            margin-bottom: 1rem;
-        }
-
-        .file-name {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            word-break: break-word;
-            line-height: 1.4;
-        }
-
-        .file-meta {
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .file-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.25rem;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-dark);
-            border: 1px solid var(--border);
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-warning {
-            background: var(--warning);
-            color: white;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        .status-message {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            display: none;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .status-message.show {
-            display: block;
-        }
-
-        .status-success {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border: 1px solid var(--success);
-        }
-
-        .status-error {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid var(--danger);
-        }
-
-        .login-prompt {
-            text-align: center;
-            padding: 3rem;
-            background: var(--bg-light);
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-muted);
-        }
-
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-10px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .public-badge {
-            background: var(--success);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-size: 0.7rem;
-            margin-left: 0.5rem;
-        }
-
-        .collaboration-info {
-            margin-top: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background-color: var(--bg-light);
-            padding: 32px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            max-width: 500px;
-            width: 90%;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .share-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .share-option:hover {
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.05);
-        }
-
-        .share-option.selected {
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
-        }
-
-        .share-option input[type="radio"] {
-            margin: 0;
-        }
-
-        .option-description {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <a href="index.html" class="logo">UPPER OFFICE CLOUD</a>
-        <div>
-            <a href="index.html" class="btn btn-primary">← Back to Editors</a>
-        </div>
-    </div>
-
-    <div class="container">
-        <div id="loginPrompt" class="login-prompt" style="display: none;">
-            <h2>Please Login</h2>
-            <p>You need to be logged in to access cloud storage.</p>
-            <a href="Login.html" class="btn btn-primary">Login</a>
-        </div>
-
-        <div id="cloudInterface" style="display: none;">
-            <div class="upload-area" id="uploadArea">
-                <h3>📁 Upload Files</h3>
-                <p>Drag & drop files here or click to browse</p>
-                <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem;">
-                    Supported: PNG, JPG, GIF, DOC, DOCX (Max 10MB)
-                </p>
-                <input type="file" id="fileInput" multiple style="display: none;" accept=".png,.jpg,.jpeg,.gif,.doc,.docx">
-                <div class="upload-progress" id="uploadProgress"></div>
-            </div>
-
-            <div class="status-message" id="statusMessage"></div>
-
-            <!-- Filter Section -->
-            <div class="filter-section">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label for="nameFilter">Search by Name</label>
-                        <input type="text" id="nameFilter" class="filter-input" placeholder="Enter file name...">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cloud Storage - UPPER Office</title><style>:root{--primary:#6366f1;--primary-dark:#4f46e5;--bg-light:#ffffff;--bg-secondary:#f8fafc;--text-dark:#1e293b;--text-muted:#64748b;--border:#e2e8f0;--success:#10b981;--danger:#ef4444;--warning:#f59e0b}*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:var(--bg-secondary);color:var(--text-dark);line-height:1.6}.header{background:var(--bg-light);padding:1rem 2rem;box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}.logo{font-size:1.5rem;font-weight:700;color:var(--primary);text-decoration:none}.container{max-width:1200px;margin:2rem auto;padding:0 1rem}.upload-area{background:var(--bg-light);border:2px dashed var(--border);border-radius:16px;padding:3rem;text-align:center;margin-bottom:2rem;transition:all .3s;position:relative}.upload-area:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.1)}.upload-area.dragover{border-color:var(--primary);background:rgba(99,102,241,.05)}.upload-progress{position:absolute;bottom:0;left:0;height:4px;background:var(--primary);width:0%;transition:width .3s;border-radius:0 0 16px 16px}.filter-section{background:var(--bg-light);border-radius:12px;padding:1.5rem;margin-bottom:2rem;box-shadow:0 2px 10px rgba(0,0,0,.1)}.filter-row{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}.filter-group{flex:1;min-width:200px}.filter-group label{display:block;margin-bottom:.5rem;font-weight:600;font-size:.875rem;color:var(--text-dark)}.filter-input{width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-size:.875rem;transition:all .2s}.filter-input:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}.filter-select{width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-size:.875rem;background-color:var(--bg-light);cursor:pointer;transition:all .2s}.filter-select:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}.filter-actions{display:flex;gap:.5rem}.files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem}.file-card{background:var(--bg-light);border-radius:16px;padding:1.5rem;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .3s;position:relative;overflow:hidden}.file-card:hover{transform:translateY(-4px);box-shadow:0 8px 25px rgba(0,0,0,.15)}.file-preview{height:160px;background:var(--bg-secondary);border-radius:12px;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}.file-preview img{max-width:100%;max-height:100%;object-fit:contain}.file-icon{font-size:3rem;opacity:.7}.file-badge{position:absolute;top:8px;right:8px;background:var(--primary);color:#fff;padding:4px 8px;border-radius:12px;font-size:.75rem;font-weight:600}.file-info{margin-bottom:1rem}.file-name{font-weight:600;margin-bottom:.5rem;word-break:break-word;line-height:1.4}.file-meta{color:var(--text-muted);font-size:.875rem;display:flex;justify-content:space-between;align-items:center}.file-actions{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}.btn{padding:.5rem 1rem;border:none;border-radius:8px;cursor:pointer;font-size:.875rem;font-weight:600;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.25rem}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px)}.btn-secondary{background:var(--bg-secondary);color:var(--text-dark);border:1px solid var(--border)}.btn-secondary:hover{background:#e2e8f0}.btn-success{background:var(--success);color:#fff}.btn-warning{background:var(--warning);color:#fff}.btn-danger{background:var(--danger);color:#fff}.btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.2)}.status-message{padding:1rem;border-radius:8px;margin-bottom:1rem;display:none;animation:slideIn .3s ease-out}.status-message.show{display:block}.status-success{background:rgba(16,185,129,.1);color:var(--success);border:1px solid var(--success)}.status-error{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid var(--danger)}.login-prompt{text-align:center;padding:3rem;background:var(--bg-light);border-radius:16px;box-shadow:0 4px 15px rgba(0,0,0,.1)}.empty-state{text-align:center;padding:3rem;color:var(--text-muted)}.empty-state-icon{font-size:4rem;margin-bottom:1rem;opacity:.5}@keyframes slideIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}.public-badge{background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;font-size:.7rem;margin-left:.5rem}.collaboration-info{margin-top:.5rem;font-size:.75rem;color:var(--text-muted)}.modal{display:none;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,.5);align-items:center;justify-content:center}.modal.show{display:flex}.modal-content{background-color:var(--bg-light);padding:32px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:500px;width:90%;animation:slideIn .3s ease-out}.share-option{display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--border);border-radius:8px;margin-bottom:12px;cursor:pointer;transition:all .3s}.share-option:hover{border-color:var(--primary);background:rgba(99,102,241,.05)}.share-option.selected{border-color:var(--primary);background:rgba(99,102,241,.1)}.share-option input[type=radio]{margin:0}.option-description{font-size:.875rem;color:var(--text-muted);margin-top:4px}</style><style>.storage-info{background:var(--bg-light);border-radius:16px;padding:1.5rem;margin-bottom:2rem;box-shadow:0 2px 10px rgba(0,0,0,.1)}.storage-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}.storage-header h4{font-size:1.1rem;font-weight:600;color:var(--text-dark)}.storage-stats{font-size:1rem;font-weight:600;color:var(--primary)}.storage-progress-container{margin:1rem 0}.storage-progress-bar{height:12px;background:#1626d7;border-radius:6px;overflow:hidden;margin-bottom:.5rem;position:relative}.storage-progress-bar::after{content:'';position:absolute;top:0;left:0;height:100%;width:var(--progress-width,0%);background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:6px;transition:width .5s ease}.storage-progress-labels{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted)}.storage-warning{background:rgba(245,158,11,.1);border:1px solid var(--warning);color:var(--warning);padding:.75rem;border-radius:8px;margin:1rem 0;font-size:.875rem;display:none}.storage-details{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem}.storage-detail-item{text-align:center;padding:.75rem;background:var(--bg-secondary);border-radius:8px}.detail-label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:.25rem}.detail-value{display:block;font-weight:600;color:var(--text-dark)}.file-size-indicator{height:4px;background:var(--bg-secondary);border-radius:2px;margin:.5rem 0;overflow:hidden}.file-size-bar{height:100%;background:var(--primary);border-radius:2px}.storage-filter{background:var(--bg-light);border-radius:8px;padding:1rem;margin-top:1rem}.storage-filter-title{font-size:.875rem;font-weight:600;color:var(--text-dark);margin-bottom:.5rem}.empty-state-storage{text-align:center;padding:2rem;color:var(--text-muted)}.empty-state-storage-icon{font-size:3rem;margin-bottom:1rem;opacity:.5}@media (max-width:768px){.storage-details{grid-template-columns:1fr}.storage-header{flex-direction:column;align-items:flex-start;gap:.5rem}}</style></head><body onload="updateStorageDisplay()"><div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script><div class="header"><a href="index.html" class="logo">UPPER OFFICE CLOUD</a><div><a href="index.html" class="btn btn-primary">← Back to Editors</a></div></div><div class="container"><div id="loginPrompt" class="login-prompt" style="display:none"><h2>Please Login</h2><p>You need to be logged in to access cloud storage.</p><a href="Login.html" class="btn btn-primary">Login</a></div><div id="cloudInterface" style="display:none"><div class="upload-area" id="uploadArea"><h3>📁 Upload Files</h3><p>Drag & drop files here or click to browse</p><p style="color:var(--text-muted);font-size:.875rem;margin-top:.5rem">Supported: PNG, JPG, GIF, DOC, DOCX (Max 10MB)</p><input type="file" id="fileInput" multiple="multiple" style="display:none" accept=".png,.jpg,.jpeg,.gif,.doc,.docx"><div class="upload-progress" id="uploadProgress"></div></div><div class="storage-info"><div class="storage-header"><h4>📊 Storage Usage</h4><div class="storage-stats"><span id="storageUsed">0 MB</span>/<span id="storageTotal">162 MB</span><span id="storagePercentage">(0%)</span></div></div><div class="storage-progress-container"><div class="storage-progress-bar" id="storageProgressBar"></div><div class="storage-progress-labels"><span>0%</span><span>50%</span><span>100%</span></div></div><div class="storage-warning" id="storageWarning" style="display:none">⚠️<strong>Storage Limit Almost Reached!</strong>You're approaching your storage limit. Consider deleting unused files.</div><div class="storage-details"><div class="storage-detail-item"><span class="detail-label">Available:</span><span class="detail-value" id="storageAvailable">162 MB</span></div><div class="storage-detail-item"><span class="detail-label">Files:</span><span class="detail-value" id="fileCount">0</span></div><div class="storage-detail-item"><span class="detail-label">Largest File:</span><span class="detail-value" id="largestFile">0 MB</span></div></div></div><script>// Storage management variables
+    let storageInfo={used:0,total:170000000,available:170000000,percentage:0,breakdown:[]};async function updateStorageDisplay(){try{const response=await fetch('/api/cloud/storage/info',{headers:{'Authorization':localStorage.token}});if(response.ok){const data=await response.json();if(data.storage_info){storageInfo={current_usage:data.storage_info.current_usage||0,max_storage:data.storage_info.max_storage||170000000,available:data.storage_info.available||170000000,usage_percentage:data.storage_info.usage_percentage||0,allowed:data.storage_info.allowed||!0}}
+const usedMB=(storageInfo.current_usage/(1024*1024)).toFixed(2);const totalMB=(storageInfo.max_storage/(1024*1024)).toFixed(0);const availableMB=(storageInfo.available/(1024*1024)).toFixed(2);const percentage=storageInfo.usage_percentage.toFixed(1);document.getElementById('storageUsed').textContent=`${usedMB} MB`;document.getElementById('storageTotal').textContent=`${totalMB} MB`;document.getElementById('storagePercentage').textContent=`(${percentage}%)`;document.getElementById('storageAvailable').textContent=`${availableMB} MB`;const progressBar=document.getElementById('storageProgressBar');progressBar.style.width=`${percentage}%`;const warning=document.getElementById('storageWarning');if(storageInfo.usage_percentage>80){warning.style.display='block';warning.style.background=storageInfo.usage_percentage>95?'rgba(239, 68, 68, 0.1)':'rgba(245, 158, 11, 0.1)';warning.style.borderColor=storageInfo.usage_percentage>95?'var(--danger)':'var(--warning)';warning.style.color=storageInfo.usage_percentage>95?'var(--danger)':'var(--warning)';if(storageInfo.usage_percentage>95){warning.innerHTML='🚨 <strong>Storage Limit Exceeded!</strong> You cannot upload more files until you free up space.'}}else{warning.style.display='none'}
+document.getElementById('fileCount').textContent=allFiles.length;if(allFiles.length>0){const largest=Math.max(...allFiles.map(f=>f.size||0));document.getElementById('largestFile').textContent=`${(largest / (1024 * 1024)).toFixed(2)} MB`}
+updateUploadAreaStatus()}}catch(error){console.error('Error updating storage display:',error)}}
+function updateUploadAreaStatus(){const uploadArea=document.getElementById('uploadArea');const fileInput=document.getElementById('fileInput');if(storageInfo.usage_percentage>=100){uploadArea.style.opacity='0.6';uploadArea.style.cursor='not-allowed';uploadArea.style.borderColor='var(--danger)';uploadArea.querySelector('h3').textContent='📦 Storage Full';uploadArea.querySelector('p').textContent='Delete some files to upload new ones';fileInput.disabled=!0}else if(storageInfo.usage_percentage>80){uploadArea.style.borderColor='var(--warning)'}else{uploadArea.style.opacity='1';uploadArea.style.cursor='pointer';uploadArea.style.borderColor='';uploadArea.querySelector('h3').textContent='📁 Upload Files';uploadArea.querySelector('p').textContent='Drag & drop files here or click to browse';fileInput.disabled=!1}}
+function updateFileDisplayWithStorage(files){files.forEach(file=>{const fileCard=document.querySelector(`[data-file-id="${file.id}"]`);if(fileCard){const sizeMB=file.size/(1024*1024);const sizePercentage=(file.size/storageInfo.max_storage)*100;if(!fileCard.querySelector('.file-size-indicator')){const sizeIndicator=document.createElement('div');sizeIndicator.className='file-size-indicator';sizeIndicator.innerHTML=`<div class="file-size-bar" style="width: ${Math.min(sizePercentage * 10, 100)}%"></div>`;fileCard.querySelector('.file-info').appendChild(sizeIndicator)}}})}
+async function handleFiles(files){let totalSize=0;for(let file of files){totalSize+=file.size}
+if(storageInfo.available<totalSize){const availableMB=(storageInfo.available/(1024*1024)).toFixed(2);const neededMB=(totalSize/(1024*1024)).toFixed(2);showStatus(`Not enough storage. Need ${neededMB} MB, only ${availableMB} MB available.`,'error');return}
+for(let file of files){await uploadFile(file)}
+await loadFiles();await updateStorageDisplay()}
+async function deleteFile(fileId){if(!confirm('Are you sure you want to delete this file?')){return}
+try{const response=await fetch(`/api/cloud/files/${fileId}`,{method:'DELETE',headers:{'Authorization':localStorage.token}});if(response.ok){const result=await response.json();showStatus('File deleted successfully','success');await loadFiles();await updateStorageDisplay();const deletedFile=allFiles.find(f=>f.id===fileId);if(deletedFile){const freedMB=(deletedFile.size/(1024*1024)).toFixed(2);setTimeout(()=>{showStatus(`Freed ${freedMB} MB of storage`,'success')},500)}}else{showStatus('Error deleting file','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+function showStorageBreakdown(){const modal=document.createElement('div');modal.className='modal show';modal.innerHTML=`
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">📊 Storage Breakdown</h2>
+                    <button class="btn" id="closeStorageModal" style="background: transparent; padding: 4px;">✕</button>
+                </div>
+                
+                <div id="storageBreakdownContent" style="min-height: 200px;">
+                    <div style="text-align: center; padding: 2rem;">
+                        <div class="loading-spinner"></div>
+                        <p>Loading storage breakdown...</p>
                     </div>
-                    <div class="filter-group">
-                        <label for="typeFilter">File Type</label>
-                        <select id="typeFilter" class="filter-select">
-                            <option value="all">All Types</option>
-                            <option value="image">Images</option>
-                            <option value="document">Documents</option>
-                        </select>
+                </div>
+                
+                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Total Used:</span>
+                        <span id="modalTotalUsed">0 MB</span>
                     </div>
-                    <div class="filter-group">
-                        <label for="sizeFilter">Size</label>
-                        <select id="sizeFilter" class="filter-select">
-                            <option value="all">All Sizes</option>
-                            <option value="small">Small (&lt; 1MB)</option>
-                            <option value="medium">Medium (1-5MB)</option>
-                            <option value="large">Large (&gt; 5MB)</option>
-                        </select>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Available:</span>
+                        <span id="modalAvailable">162 MB</span>
                     </div>
-                    <div class="filter-group">
-                        <label for="sharingFilter">Sharing Status</label>
-                        <select id="sharingFilter" class="filter-select">
-                            <option value="all">All Files</option>
-                            <option value="public">Public</option>
-                            <option value="private">Private</option>
-                        </select>
-                    </div>
-                    <div class="filter-actions">
-                        <button id="applyFilters" class="btn btn-primary">Apply Filters</button>
-                        <button id="resetFilters" class="btn btn-secondary">Reset</button>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Usage:</span>
+                        <span id="modalUsage">0%</span>
                     </div>
                 </div>
             </div>
-
-            <div class="files-grid" id="filesGrid">
-                <!-- Files will be loaded here -->
+        `;document.body.appendChild(modal);document.getElementById('closeStorageModal').addEventListener('click',()=>{document.body.removeChild(modal)});loadStorageBreakdown(modal)}
+async function loadStorageBreakdown(modal){try{const response=await fetch('/api/cloud/storage/breakdown',{headers:{'Authorization':localStorage.token}});if(response.ok){const data=await response.json();const breakdown=data.breakdown;const content=document.getElementById('storageBreakdownContent');content.innerHTML='';if(!breakdown||breakdown.length===0){content.innerHTML='<div style="text-align: center; padding: 2rem; color: var(--text-muted);">No files found</div>';return}
+let currentUsage=0;let usagePercentage=0;try{const storageResponse=await fetch('/api/cloud/storage/info',{headers:{'Authorization':localStorage.token}});if(storageResponse.ok){const storageData=await storageResponse.json();currentUsage=storageData.storage_info?.current_usage||0;usagePercentage=storageData.storage_info?.usage_percentage||0}}catch(error){console.error('Error loading storage info:',error)}
+let html='<div style="display: flex; flex-direction: column; gap: 0.75rem;">';breakdown.forEach(item=>{const sizeMB=item.total_size?(item.total_size/(1024*1024)).toFixed(2):'0.00';const percentage=currentUsage>0?((item.total_size||0)/currentUsage*100).toFixed(1):'0.0';const icon=getFileTypeIcon(item.type);html+=`
+                    <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
+                        <div style="font-size: 1.5rem;">${icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">
+                                ${item.type ? (item.type.charAt(0).toUpperCase() + item.type.slice(1)) : 'Unknown'}
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">${item.count || 0} files</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600;">${sizeMB} MB</div>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">${percentage}% of used</div>
+                        </div>
+                    </div>
+                `});html+='</div>';content.innerHTML=html;const totalUsed=currentUsage?(currentUsage/(1024*1024)).toFixed(2):'0.00';const available=storageInfo.available?(storageInfo.available/(1024*1024)).toFixed(2):'162.00';const usage=usagePercentage?usagePercentage.toFixed(1):'0.0';document.getElementById('modalTotalUsed').textContent=`${totalUsed} MB`;document.getElementById('modalAvailable').textContent=`${available} MB`;document.getElementById('modalUsage').textContent=`${usage}%`}else{const content=document.getElementById('storageBreakdownContent');content.innerHTML='<div style="text-align: center; padding: 2rem; color: var(--danger);">Error loading storage data</div>'}}catch(error){console.error('Error loading storage breakdown:',error);const content=document.getElementById('storageBreakdownContent');content.innerHTML='<div style="text-align: center; padding: 2rem; color: var(--danger);">Error loading storage breakdown</div>'}}
+function getFileTypeIcon(type){const icons={'image':'🖼️','document':'📄','presentation':'📊','3d_model':'🦄','vector':'🎨','other':'📁'};return icons[type]||'📁'}
+function addStorageInfoButton(){const header=document.querySelector('.header');const storageBtn=document.createElement('button');storageBtn.className='btn btn-secondary';storageBtn.id='storageInfoBtn';storageBtn.innerHTML='📊 Storage';storageBtn.style.marginLeft='0.5rem';storageBtn.addEventListener('click',showStorageBreakdown);const backBtn=header.querySelector('a[href="index.html"]');backBtn.parentNode.insertBefore(storageBtn,backBtn.nextSibling)}
+async function loadFiles(){try{const response=await fetch('/api/cloud/files',{headers:{'Authorization':localStorage.token}});if(response.ok){allFiles=await response.json();displayFiles(allFiles);await updateStorageDisplay()}else{showStatus('Error loading files','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+document.addEventListener('DOMContentLoaded',function(){if(localStorage.token){addStorageInfoButton();const filterSection=document.querySelector('.filter-section');const storageFilter=document.createElement('div');storageFilter.className='storage-filter';storageFilter.innerHTML=`
+                <div class="storage-filter-title">Storage Filters</div>
+                <div style="display: flex; gap: 1rem;">
+                    <select class="filter-select" id="sizeSortFilter">
+                        <option value="all">Sort by Size</option>
+                        <option value="largest">Largest First</option>
+                        <option value="smallest">Smallest First</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                    <select class="filter-select" id="typeSizeFilter">
+                        <option value="all">All File Types</option>
+                        <option value="image">Images Only</option>
+                        <option value="document">Documents Only</option>
+                        <option value="presentation">Presentations Only</option>
+                        <option value="3d_model">3D Models Only</option>
+                        <option value="vector">Vector Files Only</option>
+                    </select>
+                </div>
+            `;filterSection.parentNode.insertBefore(storageFilter,filterSection.nextSibling);document.getElementById('sizeSortFilter').addEventListener('change',applyFileFilters);document.getElementById('typeSizeFilter').addEventListener('change',applyFileFilters)}});function filterFiles(files){return files.filter(file=>{if(currentFilters.name&&!file.filename.toLowerCase().includes(currentFilters.name)){return!1}
+if(currentFilters.type!=='all'&&file.type!==currentFilters.type){return!1}
+if(currentFilters.size!=='all'){const fileSizeMB=file.size/(1024*1024);switch(currentFilters.size){case 'small':if(fileSizeMB>=1)return!1;break;case 'medium':if(fileSizeMB<1||fileSizeMB>5)return!1;break;case 'large':if(fileSizeMB<=5)return!1;break}}
+if(currentFilters.sharing!=='all'){if(currentFilters.sharing==='public'&&!file.is_public)return!1;if(currentFilters.sharing==='private'&&file.is_public)return!1}
+const sizeSort=document.getElementById('sizeSortFilter').value;const typeFilter=document.getElementById('typeSizeFilter').value;if(typeFilter!=='all'&&file.type!==typeFilter){return!1}
+return!0}).sort((a,b)=>{const sizeSort=document.getElementById('sizeSortFilter').value;switch(sizeSort){case 'largest':return b.size-a.size;case 'smallest':return a.size-b.size;case 'newest':return new Date(b.upload_date)-new Date(a.upload_date);case 'oldest':return new Date(a.upload_date)-new Date(b.upload_date);default:return 0}})}</script><div class="status-message" id="statusMessage"></div><div class="filter-section"><div class="filter-row"><div class="filter-group"><label for="nameFilter">Search by Name</label><input type="text" id="nameFilter" class="filter-input" placeholder="Enter file name..."></div><div class="filter-group"><label for="typeFilter">File Type</label><select id="typeFilter" class="filter-select"><option value="all">All Types</option><option value="image">Images</option><option value="document">Documents</option><option value="vector">Vector Files</option></select></div><div class="filter-group"><label for="sizeFilter">Size</label><select id="sizeFilter" class="filter-select"><option value="all">All Sizes</option><option value="small">Small(&lt;1MB)</option><option value="medium">Medium(1-5MB)</option><option value="large">Large(&gt;5MB)</option></select></div><div class="filter-group"><label for="sharingFilter">Sharing Status</label><select id="sharingFilter" class="filter-select"><option value="all">All Files</option><option value="public">Public</option><option value="private">Private</option></select></div><div class="filter-actions"><button id="applyFilters" class="btn btn-primary">Apply Filters</button><button id="resetFilters" class="btn btn-secondary">Reset</button></div></div></div><div class="files-grid" id="filesGrid"></div></div></div><script>const cloudInterface=document.getElementById('cloudInterface');const loginPrompt=document.getElementById('loginPrompt');const uploadArea=document.getElementById('uploadArea');const fileInput=document.getElementById('fileInput');const filesGrid=document.getElementById('filesGrid');const statusMessage=document.getElementById('statusMessage');const uploadProgress=document.getElementById('uploadProgress');const nameFilter=document.getElementById('nameFilter');const typeFilter=document.getElementById('typeFilter');const sizeFilter=document.getElementById('sizeFilter');const sharingFilter=document.getElementById('sharingFilter');const applyFilters=document.getElementById('applyFilters');const resetFilters=document.getElementById('resetFilters');let allFiles=[];let currentFilters={name:'',type:'all',size:'all',sharing:'all'};if(!localStorage.token){loginPrompt.style.display='block'}else{cloudInterface.style.display='block';loadFiles()}
+uploadArea.addEventListener('click',()=>fileInput.click());uploadArea.addEventListener('dragover',(e)=>{e.preventDefault();uploadArea.classList.add('dragover')});uploadArea.addEventListener('dragleave',()=>{uploadArea.classList.remove('dragover')});uploadArea.addEventListener('drop',(e)=>{e.preventDefault();uploadArea.classList.remove('dragover');handleFiles(e.dataTransfer.files)});fileInput.addEventListener('change',(e)=>{handleFiles(e.target.files)});applyFilters.addEventListener('click',applyFileFilters);resetFilters.addEventListener('click',resetFileFilters);nameFilter.addEventListener('keyup',(e)=>{if(e.key==='Enter'){applyFileFilters()}});function applyFileFilters(){currentFilters={name:nameFilter.value.toLowerCase(),type:typeFilter.value,size:sizeFilter.value,sharing:sharingFilter.value};displayFiles(allFiles)}
+function resetFileFilters(){nameFilter.value='';typeFilter.value='all';sizeFilter.value='all';sharingFilter.value='all';currentFilters={name:'',type:'all',size:'all',sharing:'all'};displayFiles(allFiles)}
+function filterFiles(files){return files.filter(file=>{if(currentFilters.name&&!file.filename.toLowerCase().includes(currentFilters.name)){return!1}
+if(currentFilters.type!=='all'&&file.type!==currentFilters.type){return!1}
+if(currentFilters.size!=='all'){const fileSizeMB=file.size/(1024*1024);switch(currentFilters.size){case 'small':if(fileSizeMB>=1)return!1;break;case 'medium':if(fileSizeMB<1||fileSizeMB>5)return!1;break;case 'large':if(fileSizeMB<=5)return!1;break}}
+if(currentFilters.sharing!=='all'){if(currentFilters.sharing==='public'&&!file.is_public)return!1;if(currentFilters.sharing==='private'&&file.is_public)return!1}
+return!0})}
+async function handleFiles(files){for(let file of files){await uploadFile(file)}
+loadFiles()}
+async function uploadFile(file){const formData=new FormData();formData.append('file',file);let progress=0;const progressInterval=setInterval(()=>{progress+=Math.random()*10;if(progress>=90)clearInterval(progressInterval);uploadProgress.style.width=progress+'%'},100);try{const response=await fetch('/api/cloud/upload',{method:'POST',headers:{'Authorization':localStorage.token},body:formData});clearInterval(progressInterval);uploadProgress.style.width='100%';const result=await response.json();if(response.ok){showStatus('File uploaded successfully!','success')}else{showStatus('Error: '+result.error,'error')}}catch(error){showStatus('Error uploading file: '+error.message,'error')}finally{setTimeout(()=>{uploadProgress.style.width='0%'},500)}}
+async function loadFiles(){try{const response=await fetch('/api/cloud/files',{headers:{'Authorization':localStorage.token}});if(response.ok){allFiles=await response.json();displayFiles(allFiles)}else{showStatus('Error loading files','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+function displayFiles(files){filesGrid.innerHTML='';const filteredFiles=filterFiles(files);if(filteredFiles.length===0){filesGrid.innerHTML=`
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <div class="empty-state-icon">🔍</div>
+                <h3>No files found</h3>
+                <p>Try adjusting your filters or upload new files</p>
             </div>
-        </div>
-    </div>
-
-    <script>
-        const cloudInterface = document.getElementById('cloudInterface');
-        const loginPrompt = document.getElementById('loginPrompt');
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const filesGrid = document.getElementById('filesGrid');
-        const statusMessage = document.getElementById('statusMessage');
-        const uploadProgress = document.getElementById('uploadProgress');
-
-        // Filter elements
-        const nameFilter = document.getElementById('nameFilter');
-        const typeFilter = document.getElementById('typeFilter');
-        const sizeFilter = document.getElementById('sizeFilter');
-        const sharingFilter = document.getElementById('sharingFilter');
-        const applyFilters = document.getElementById('applyFilters');
-        const resetFilters = document.getElementById('resetFilters');
-
-        // Current files and filters
-        let allFiles = [];
-        let currentFilters = {
-            name: '',
-            type: 'all',
-            size: 'all',
-            sharing: 'all'
-        };
-
-        // Check authentication
-        if (!localStorage.token) {
-            loginPrompt.style.display = 'block';
-        } else {
-            cloudInterface.style.display = 'block';
-            loadFiles();
-        }
-
-        // Upload area functionality
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-        });
-
-        // Filter functionality
-        applyFilters.addEventListener('click', applyFileFilters);
-        resetFilters.addEventListener('click', resetFileFilters);
-        
-        // Allow Enter key to apply filters in name filter
-        nameFilter.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') {
-                applyFileFilters();
-            }
-        });
-
-        function applyFileFilters() {
-            currentFilters = {
-                name: nameFilter.value.toLowerCase(),
-                type: typeFilter.value,
-                size: sizeFilter.value,
-                sharing: sharingFilter.value
-            };
-            
-            displayFiles(allFiles);
-        }
-
-        function resetFileFilters() {
-            nameFilter.value = '';
-            typeFilter.value = 'all';
-            sizeFilter.value = 'all';
-            sharingFilter.value = 'all';
-            
-            currentFilters = {
-                name: '',
-                type: 'all',
-                size: 'all',
-                sharing: 'all'
-            };
-            
-            displayFiles(allFiles);
-        }
-
-        function filterFiles(files) {
-            return files.filter(file => {
-                // Filter by name
-                if (currentFilters.name && 
-                    !file.filename.toLowerCase().includes(currentFilters.name)) {
-                    return false;
+        `;return}
+filteredFiles.forEach(file=>{const fileCard=document.createElement('div');fileCard.className='file-card';fileCard.dataset.fileId=file.id;const previewUrl=getPreviewUrl(file);const size=formatFileSize(file.size);const date=new Date(file.upload_date).toLocaleDateString();let icon='📁';if(file.type==='image')icon='🖼️';if(file.type==='document')icon='📄';if(file.type==='presentation')icon='📊';if(file.type==='3d_model')icon='🦄';if(file.type==='vector')icon='🎨';let collaborationInfo='';if(file.is_public){collaborationInfo=`
+                <div class="collaboration-info">
+                    <strong>Collaboration:</strong> 
+                    <button class="btn btn-success" onclick="manageCollaboration(${file.id})" style="padding: 2px 6px; font-size: 0.7rem; margin-left: 0.5rem;">
+                        Manage
+                    </button>
+                </div>
+            `}
+fileCard.innerHTML=`
+            <div class="file-preview">
+                ${previewUrl ? 
+                    `<img src="${previewUrl}" alt="${file.filename}" loading="lazy"
+style="width: 100%; height: 100%; object-fit: contain;"
+onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"file-icon\">${icon}</div>'">` :
+                    `<div class="file-icon">${icon}</div>`
                 }
-                
-                // Filter by type
-                if (currentFilters.type !== 'all' && 
-                    file.type !== currentFilters.type) {
-                    return false;
+                ${file.is_public ? '<div class="file-badge">Public</div>' : ''}
+            </div>
+            <div class="file-info">
+                <div class="file-name" title="${file.filename}">${truncateFilename(file.filename, 30)}</div>
+                <div class="file-meta">
+                    <span>${size}</span>
+                    <span>${date}</span>
+                </div>
+            </div>
+            <div class="file-actions">
+                <button class="btn btn-primary" onclick="downloadFile(${file.id})" title="Download">
+                    ⬇️ Download
+                </button>
+                <button class="btn btn-warning" onclick="openFile(${file.id}, '${file.type}')" title="Open">
+                    🔍 Open
+                </button>
+                ${file.is_public ? 
+                    `<button class="btn btn-danger" onclick="unshareFile(${file.id})" title="Make Private">🔒 Private</button>` :
+                    `<button class="btn btn-success" onclick="shareFile(${file.id})" title="Make Public">🔗 Share</button>`
                 }
-                
-                // Filter by size
-                if (currentFilters.size !== 'all') {
-                    const fileSizeMB = file.size / (1024 * 1024);
-                    
-                    switch(currentFilters.size) {
-                        case 'small':
-                            if (fileSizeMB >= 1) return false;
-                            break;
-                        case 'medium':
-                            if (fileSizeMB < 1 || fileSizeMB > 5) return false;
-                            break;
-                        case 'large':
-                            if (fileSizeMB <= 5) return false;
-                            break;
-                    }
-                }
-                
-                // Filter by sharing status
-                if (currentFilters.sharing !== 'all') {
-                    if (currentFilters.sharing === 'public' && !file.is_public) return false;
-                    if (currentFilters.sharing === 'private' && file.is_public) return false;
-                }
-                
-                return true;
-            });
-        }
-
-        async function handleFiles(files) {
-            for (let file of files) {
-                await uploadFile(file);
-            }
-            loadFiles();
-        }
-
-        async function uploadFile(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += Math.random() * 10;
-                if (progress >= 90) clearInterval(progressInterval);
-                uploadProgress.style.width = progress + '%';
-            }, 100);
-
-            try {
-                const response = await fetch('/api/cloud/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': localStorage.token
-                    },
-                    body: formData
-                });
-
-                clearInterval(progressInterval);
-                uploadProgress.style.width = '100%';
-
-                const result = await response.json();
-                
-                if (response.ok) {
-                    showStatus('File uploaded successfully!', 'success');
-                } else {
-                    showStatus('Error: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showStatus('Error uploading file: ' + error.message, 'error');
-            } finally {
-                setTimeout(() => {
-                    uploadProgress.style.width = '0%';
-                }, 500);
-            }
-        }
-
-        async function loadFiles() {
-            try {
-                const response = await fetch('/api/cloud/files', {
-                    headers: {
-                        'Authorization': localStorage.token
-                    }
-                });
-
-                if (response.ok) {
-                    allFiles = await response.json();
-                    displayFiles(allFiles);
-                } else {
-                    showStatus('Error loading files', 'error');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
-            }
-        }
-
-        function displayFiles(files) {
-            filesGrid.innerHTML = '';
-            
-            // Apply filters
-            const filteredFiles = filterFiles(files);
-            
-            if (filteredFiles.length === 0) {
-                filesGrid.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <div class="empty-state-icon">🔍</div>
-                        <h3>No files found</h3>
-                        <p>Try adjusting your filters or upload new files</p>
-                    </div>
-                `;
-                return;
-            }
-
-            filteredFiles.forEach(file => {
-                const fileCard = document.createElement('div');
-                fileCard.className = 'file-card';
-                
-                const icon = file.type === 'image' ? '🖼️' : '📄';
-                const size = formatFileSize(file.size);
-                const date = new Date(file.upload_date).toLocaleDateString();
-                const previewUrl = file.type === 'image' ? `/api/cloud/download/${file.id}` : null;
-                
-                // Collaboration info
-                let collaborationInfo = '';
-                if (file.is_public) {
-                    collaborationInfo = `
-                        <div class="collaboration-info">
-                            <strong>Collaboration:</strong> 
-                            <button class="btn btn-success" onclick="manageCollaboration(${file.id})" style="padding: 2px 6px; font-size: 0.7rem; margin-left: 0.5rem;">
-                                Manage
-                            </button>
-                        </div>
-                    `;
-                }
-                
-                fileCard.innerHTML = `
-                    <div class="file-preview">
-                        ${previewUrl ? 
-                            `<img src="${previewUrl}" alt="${file.filename}" loading="lazy">` :
-                            `<div class="file-icon">${icon}</div>`
-                        }
-                        ${file.is_public ? '<div class="file-badge">Public</div>' : ''}
-                    </div>
-                    <div class="file-info">
-                        <div class="file-name">${file.filename}</div>
-                        <div class="file-meta">
-                            <span>${size}</span>
-                            <span>${date}</span>
-                        </div>
-                    </div>
-                    <div class="file-actions">
-                        <button class="btn btn-primary" onclick="downloadFile(${file.id})" title="Download">
-                            ⬇️ Download
-                        </button>
-                        <button class="btn btn-warning" onclick="openFile(${file.id}, '${file.type}')" title="Open">
-                            🔍 Open
-                        </button>
-                        ${file.is_public ? 
-                            `<button class="btn btn-danger" onclick="unshareFile(${file.id})" title="Make Private">
-                                🔒 Private
-                            </button>` :
-                            `<button class="btn btn-success" onclick="shareFile(${file.id})" title="Make Public">
-                                🔗 Share
-                            </button>`
-                        }
-                        <button class="btn btn-danger" onclick="deleteFile(${file.id})" title="Delete">
-                            🗑️ Delete
-                        </button>
-                    </div>
-                    ${collaborationInfo}
-                    ${file.is_public ? `
-                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
-                        <strong>Public URL:</strong>
-                        ${file.type === 'image' ? 
-                            `<input type="text" value="${window.location.origin}/pictureeditor.html?publicToken=${file.public_token}" readonly 
-                                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
-                                onclick="this.select()">
-                             <div style="font-size: 0.7rem; color: var(--success); margin-top: 0.25rem;">
-                                 📝 Opens directly in Image Editor
-                             </div>` :
-                            `<input type="text" value="${window.location.origin}${file.public_url}" readonly 
-                                style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
-                                onclick="this.select()">
-                             <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                 ⬇️ Downloads file
-                             </div>`
-                        }
-                    </div>
-                ` : ''}
-                `;
-                
-                filesGrid.appendChild(fileCard);
-            });
-        }
-
-        function openFile(fileId, fileType) {
-            if (fileType === 'image') {
-                window.open(`pictureeditor.html?cloudFile=${fileId}`, '_blank');
-            } else {
-                window.open(`documenteditor.html?cloudFile=${fileId}`, '_blank');
-            }
-        }
-
-        async function downloadFile(fileId) {
-            try {
-                const response = await fetch(`/api/cloud/download/${fileId}`, {
-                    headers: {
-                        'Authorization': localStorage.token
-                    }
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `file_${fileId}`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    showStatus('File downloaded successfully!', 'success');
-                } else {
-                    showStatus('Error downloading file', 'error');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
-            }
-        }
-
-        async function shareFile(fileId) {
-            try {
-                const response = await fetch(`/api/cloud/files/${fileId}/share`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': localStorage.token,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    showStatus('File is now publicly accessible', 'success');
-                    loadFiles();
-                } else {
-                    showStatus('Error sharing file', 'error');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
-            }
-        }
-
-        async function unshareFile(fileId) {
-            try {
-                const response = await fetch(`/api/cloud/files/${fileId}/unshare`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': localStorage.token,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    showStatus('File is now private', 'success');
-                    loadFiles();
-                } else {
-                    showStatus('Error updating file', 'error');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
-            }
-        }
-
-        async function deleteFile(fileId) {
-            if (!confirm('Are you sure you want to delete this file?')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/cloud/files/${fileId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': localStorage.token
-                    }
-                });
-
-                if (response.ok) {
-                    showStatus('File deleted successfully', 'success');
-                    loadFiles();
-                } else {
-                    showStatus('Error deleting file', 'error');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
-            }
-        }
-
-        // Collaboration management
-        async function manageCollaboration(fileId) {
-            try {
-                const response = await fetch(`/api/collaboration/session/by-file/${fileId}`, {
-                    headers: {
-                        'Authorization': localStorage.token
-                    }
-                });
-
-                if (response.ok) {
-                    const session = await response.json();
-                    showCollaborationManagementModal(fileId, session);
-                } else {
-                    showCollaborationCreationModal(fileId);
-                }
-            } catch (error) {
-                showStatus('Error managing collaboration: ' + error.message, 'error');
-            }
-        }
-
-        function showCollaborationCreationModal(fileId) {
-            const modal = document.createElement('div');
-            modal.className = 'modal show';
-            modal.innerHTML = `
+                <button class="btn btn-danger" onclick="deleteFile(${file.id})" title="Delete">
+                    🗑️ Delete
+                </button>
+            </div>
+            ${collaborationInfo}
+            ${file.is_public ? `<div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);"><strong>Public URL:</strong>${file.type==='image'||file.type==='vector'?`<input type="text" value="${window.location.origin}/pictureeditor.html?publicToken=${file.public_token}" readonly 
+                        style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
+                        onclick="this.select()">
+                     <div style="font-size: 0.7rem; color: var(--success); margin-top: 0.25rem;">
+                         📝 Opens directly in Image Editor
+                     </div>`:`<input type="text" value="${window.location.origin}${file.public_url}" readonly 
+                        style="width: 100%; padding: 0.25rem; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); margin-top: 0.25rem;"
+                        onclick="this.select()">
+                     <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
+                         ⬇️ Downloads file
+                     </div>`}</div>` : ''}
+        `;filesGrid.appendChild(fileCard)})}
+function truncateFilename(filename,maxLength){if(filename.length<=maxLength)return filename;const extension=filename.split('.').pop();const nameWithoutExt=filename.substring(0,filename.length-extension.length-1);const truncatedName=nameWithoutExt.substring(0,maxLength-extension.length-4)+'...';return `${truncatedName}.${extension}`}
+function openFile(fileId,fileType){if(fileType==='image'){window.open(`pictureeditor.html?cloudFile=${fileId}`,'_blank')}else{window.open(`documenteditor.html?cloudFile=${fileId}`,'_blank')}}
+async function downloadFile(fileId){try{const response=await fetch(`/api/cloud/download/${fileId}`,{headers:{'Authorization':localStorage.token}});if(response.ok){const blob=await response.blob();const url=window.URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`file_${fileId}`;document.body.appendChild(a);a.click();window.URL.revokeObjectURL(url);document.body.removeChild(a);showStatus('File downloaded successfully!','success')}else{showStatus('Error downloading file','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+async function shareFile(fileId){try{const response=await fetch(`/api/cloud/files/${fileId}/share`,{method:'POST',headers:{'Authorization':localStorage.token,'Content-Type':'application/json'}});if(response.ok){showStatus('File is now publicly accessible','success');loadFiles()}else{showStatus('Error sharing file','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+async function unshareFile(fileId){try{const response=await fetch(`/api/cloud/files/${fileId}/unshare`,{method:'POST',headers:{'Authorization':localStorage.token,'Content-Type':'application/json'}});if(response.ok){showStatus('File is now private','success');loadFiles()}else{showStatus('Error updating file','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+async function deleteFile(fileId){if(!confirm('Are you sure you want to delete this file?')){return}
+try{const response=await fetch(`/api/cloud/files/${fileId}`,{method:'DELETE',headers:{'Authorization':localStorage.token}});if(response.ok){showStatus('File deleted successfully','success');loadFiles()}else{showStatus('Error deleting file','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+async function manageCollaboration(fileId){try{const response=await fetch(`/api/collaboration/session/by-file/${fileId}`,{headers:{'Authorization':localStorage.token}});if(response.ok){const session=await response.json();showCollaborationManagementModal(fileId,session)}else{showCollaborationCreationModal(fileId)}}catch(error){showStatus('Error managing collaboration: '+error.message,'error')}}
+function showCollaborationCreationModal(fileId){const modal=document.createElement('div');modal.className='modal show';modal.innerHTML=`
                 <div class="modal-content">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="margin: 0;">Create Collaboration Session</h2>
@@ -949,60 +202,10 @@
                         <button class="btn btn-primary" id="confirmCollab">Create Collaboration</button>
                     </div>
                 </div>
-            `;
-            document.body.appendChild(modal);
-
-            document.getElementById('closeCollabModal').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-
-            document.getElementById('cancelCollab').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-
-            document.getElementById('confirmCollab').addEventListener('click', async () => {
-                const shareMode = document.querySelector('input[name="shareMode"]:checked').value;
-                await createCollaborationSession(fileId, shareMode);
-                document.body.removeChild(modal);
-            });
-        }
-
-        function selectShareOption(element, mode) {
-            document.querySelectorAll('.share-option').forEach(opt => {
-                opt.classList.remove('selected');
-                opt.querySelector('input[type="radio"]').checked = false;
-            });
-            element.classList.add('selected');
-            element.querySelector('input[type="radio"]').checked = true;
-        }
-
-        async function createCollaborationSession(fileId, shareMode) {
-            try {
-                const response = await fetch(`/api/collaboration/session/${fileId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': localStorage.token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ share_mode: shareMode })
-                });
-
-                if (response.ok) {
-                    showStatus('Collaboration session created successfully!', 'success');
-                    loadFiles();
-                } else {
-                    const error = await response.json();
-                    showStatus('Error: ' + error.error, 'error');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
-            }
-        }
-
-        function showCollaborationManagementModal(fileId, session) {
-            const modal = document.createElement('div');
-            modal.className = 'modal show';
-            modal.innerHTML = `
+            `;document.body.appendChild(modal);document.getElementById('closeCollabModal').addEventListener('click',()=>{document.body.removeChild(modal)});document.getElementById('cancelCollab').addEventListener('click',()=>{document.body.removeChild(modal)});document.getElementById('confirmCollab').addEventListener('click',async()=>{const shareMode=document.querySelector('input[name="shareMode"]:checked').value;await createCollaborationSession(fileId,shareMode);document.body.removeChild(modal)})}
+function selectShareOption(element,mode){document.querySelectorAll('.share-option').forEach(opt=>{opt.classList.remove('selected');opt.querySelector('input[type="radio"]').checked=!1});element.classList.add('selected');element.querySelector('input[type="radio"]').checked=!0}
+async function createCollaborationSession(fileId,shareMode){try{const response=await fetch(`/api/collaboration/session/${fileId}`,{method:'POST',headers:{'Authorization':localStorage.token,'Content-Type':'application/json'},body:JSON.stringify({share_mode:shareMode})});if(response.ok){showStatus('Collaboration session created successfully!','success');loadFiles()}else{const error=await response.json();showStatus('Error: '+error.error,'error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+function showCollaborationManagementModal(fileId,session){const modal=document.createElement('div');modal.className='modal show';modal.innerHTML=`
                 <div class="modal-content">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="margin: 0;">Manage Collaboration</h2>
@@ -1021,58 +224,9 @@
                         <button class="btn btn-secondary" id="closeCollab">Close</button>
                     </div>
                 </div>
-            `;
-            document.body.appendChild(modal);
-
-            document.getElementById('closeCollabModal').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-
-            document.getElementById('closeCollab').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-
-            document.getElementById('deleteCollab').addEventListener('click', async () => {
-                await deleteCollaborationSession(session.id);
-                document.body.removeChild(modal);
-            });
-        }
-
-        async function deleteCollaborationSession(sessionId) {
-            try {
-                const response = await fetch(`/api/collaboration/session/${sessionId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': localStorage.token
-                    }
-                });
-
-                if (response.ok) {
-                    showStatus('Collaboration session deleted', 'success');
-                    loadFiles();
-                } else {
-                    showStatus('Error deleting collaboration session', 'error');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
-            }
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message show status-${type}`;
-            setTimeout(() => {
-                statusMessage.classList.remove('show');
-            }, 3000);
-        }
-    </script>
-</body>
-</html>
+            `;document.body.appendChild(modal);document.getElementById('closeCollabModal').addEventListener('click',()=>{document.body.removeChild(modal)});document.getElementById('closeCollab').addEventListener('click',()=>{document.body.removeChild(modal)});document.getElementById('deleteCollab').addEventListener('click',async()=>{await deleteCollaborationSession(session.id);document.body.removeChild(modal)})}
+async function deleteCollaborationSession(sessionId){try{const response=await fetch(`/api/collaboration/session/${sessionId}`,{method:'DELETE',headers:{'Authorization':localStorage.token}});if(response.ok){showStatus('Collaboration session deleted','success');loadFiles()}else{showStatus('Error deleting collaboration session','error')}}catch(error){showStatus('Error: '+error.message,'error')}}
+function formatFileSize(bytes){if(bytes===0)return'0 Bytes';const k=1024;const sizes=['Bytes','KB','MB','GB'];const i=Math.floor(Math.log(bytes)/Math.log(k));return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i]}
+function showStatus(message,type){statusMessage.textContent=message;statusMessage.className=`status-message show status-${type}`;setTimeout(()=>{statusMessage.classList.remove('show')},3000)}
+function getPreviewUrl(file){if(file.type==='image'||file.type==='vector'){if(file.is_public){return `/api/cloud/preview/public/${file.public_token}`}else{return `/api/cloud/preview/${file.id}`}}
+return null}</script></body></html>

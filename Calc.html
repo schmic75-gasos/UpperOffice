@@ -1,0 +1,135 @@
+<!DOCTYPE html> <!--UJISTÍ PROHLÍŽEČ, ŽE TOTO JE HTML, NE NIC PODOBNÉHO (TŘEBA XML).-->
+<html> <!--V TOMTO TAGU (MEZI ZAČÁTEČNÍM A UKONROVACÍM) VŽDY MUSÍ MÍT CELÁ HTML STRÁNKA, TAKŽE HEAD, BODY, MAIN, FOOTER, PROSTĚ VŠECHNO. KDE KONČÍ HTML TAG, TAM KONČÍ STRÁNKA.-->
+<head> <!--HEAD SEKCE - TO, CO NENÍ VIDĚT - NASTAVENÍ APOD.-->
+    <meta charset="utf-8"> <!--KÓDOVÁNÍ UTF-8 - ČESKÁ DIAKRITIKA, SPECIÁLNÍ ZNAKY APOD. - NUTNOST-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--ZÁKLAD PRO RESPONZIVNÍ DESIGN-->
+    <title>UPPER Office - <!--NÁZEV STRÁNKY--></title>
+    <link rel="stylesheet" href="untiteld-1.CSS" type="text/css"> <!--PROPOJENÍ S NAŠÍM CSS SOUBOREM - JE DŮLEŽITÉ, ABY KAŽDÁ STRÁNKA MĚLA NÁZVY TAGŮ V SOUHLADU S OBECNÝMI CSS STYLY.-->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"> <!--PROPOJENÍ S GOOGLE FONTS - PÍSMO-->
+</head> <!--KONEC HEAD SEKCE - NEZAPOMEŇ SPRÁVNĚ UKONČOVAT TAGY.-->
+<body> <!--VIDITELNÉ TĚLO STRÁNKY-->
+    <header> <!--HLAVIČKA-->
+        <a href="index.html" class="logo">UPPER OFFICE</a> <!--VŽDY STEJNÉ-->
+        <div class="navigation"> <!--VŽDY STEJNÉ-->
+            <nav> <!--VŽDY STEJNÉ-->
+                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li> <!--VŽDY STEJNÉ-->
+                <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li> <!--VŽDY STEJNÉ-->
+                <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li> <!--VŽDY STEJNÉ-->
+                <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li> <!--VŽDY STEJNÉ-->
+                <li class="nav-item login-container"> <!--VŽDY STEJNÉ-->
+                    <a href="Login.html" class="nav-link login-link">👨‍🚒</a> <!--VŽDY STEJNÉ-->
+                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div> <!--VŽDY STEJNÉ-->
+                </li> <!--VŽDY STEJNÉ-->
+            </nav> <!--VŽDY STEJNÉ-->
+        </div> <!--VŽDY STEJNÉ-->
+    </header> <!--VŽDY STEJNÉ-->
+
+    <main>
+        <!--HLAVNÍ OBSAH-->
+    </main>
+<div class="dspl">
+    <div class="display">
+    
+    <text style="font-size: 30px; background-color: #151a14; color:#f2f2f2; font-family: 'Courier New', Courier, monospace; margin: 50%">Zdejte příklad</text>
+
+
+
+
+    </div>
+
+    
+
+    <div class="grafika">
+
+        <canvas>
+
+        </canvas>
+
+
+    </div>
+</div>
+ <hr>
+<div class="controller">
+    <div class="keyboard">
+        <div class="numbres">
+            <div class="jednatri"></div>
+                <button>1</button><button>2</button><button>3</button>
+            <div class="ctirysest"></div>
+                <button>4</button><button>5</button><button>6</button>
+            <div class=sedmdevet></div>
+                <button>7</button><button>8</button><button>9</button>
+        </div>
+        
+        <div class="functions">
+            
+            <div class="math">
+                <nav>
+                <ul><a>Mathematical functions</a></ul>
+                <ul><button>+</button><button>-</button><button>×</button><button>÷</button><button>!</button> </ul>
+                <ul><button>(</button><button>)</button><button>[</button><button>]</button><button>{</button><button>}</button> </ul>
+                <ul><button>°</button><button>'</button><button>''</button><button>'''</button><button>rad</button><button>gon</button><button>mrad</button> </ul>
+                <ul><button>%</button><button>x²</button><button>x³</button><button>x<sup>y</sup></button><button>√</button><button>∛</button><button>∜</button><button>x√</button><button>Log x</button></ul>
+                <ul><button>cos</button><button>sin</button><button>tg</button><button>cotg</button><button>sec</button><button>cosec</button><button>versin</button><button>vercos</button><button>coversin</button><button>exsec</button><button>excosec</button></ul>
+                <ul><button>cos<sup>-1</sup></button><button>sin<sup>-1</sup></button><button>tg<sup>-1</sup></button><button>cotg<sup>-1</sup></button><button>sec<sup>-1</sup></button><button>cosec<sup>-1</sup></button><button>versin<sup>-1</sup></button><button>vercos<sup>-1</sup></button><button>coversin<sup>-1</sup></button><button>exsec<sup>-1</sup></button><button>excosec<sup>-1</sup></button></ul>
+                </nav>
+
+            </div>
+            
+            <div class="programer">
+                <nav>
+                <ul>Programer functions</a></ul>
+                <ul><button>DEC</button><button>HEX</button><button>OCT</button><button>BIN</button></ul>
+                </nav>>
+            </div>
+
+        </div>
+    
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+</body>
+
+<style>
+
+button{
+    font-size:30px;
+}
+    
+.controller {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+    margin: 5%;
+}
+
+.keyboard, 
+.functions {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+}
+
+.dspl{
+    display: flex;
+    flex-direction: row;
+}
+
+    
+</style>
+
+
+
+
+
+
+</html>

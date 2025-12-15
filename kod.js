@@ -4,10 +4,10 @@ const textBox = document.getElementById("textBox");
   btn.addEventListener("click", () => {
     if (textBox.dir === "ltr") {
       textBox.dir = "rtl";
-      btn.textContent = "Přepnout na LTR";
+      btn.textContent = "Switch to LTR";
     } else {
       textBox.dir = "ltr";
-      btn.textContent = "Přepnout na RTL";
+      btn.textContent = "Switch to RTL";
     }
   });
 

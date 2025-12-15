@@ -1,0 +1,536 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UpperStore - Free Apps Marketplace</title><style>:root{--primary:#6366f1;--primary-dark:#4f46e5;--secondary:#ec4899;--accent:#8b5cf6;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--bg-dark:#0f172a;--bg-secondary:#1e293b;--bg-tertiary:#334155;--text-light:#f1f5f9;--text-muted:#cbd5e1;--border-dark:#475569;--radius:0.75rem;--shadow:0 10px 30px rgba(0, 0, 0, 0.3);--gradient-primary:linear-gradient(135deg, #667eea 0%, #764ba2 100%);--gradient-secondary:linear-gradient(135deg, #f093fb 0%, #f5576c 100%);--gradient-accent:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)}*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg-dark);color:var(--text-light);line-height:1.6}.header{background:var(--bg-secondary);border-bottom:1px solid var(--border-dark);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1000;backdrop-filter:blur(10px)}.logo{font-size:1.75rem;font-weight:700;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-decoration:none}.logo-tagline{font-size:.875rem;color:var(--text-muted);margin-left:1rem;font-style:italic}.nav{display:flex;gap:1.5rem;align-items:center}.nav-link{color:var(--text-light);text-decoration:none;padding:.5rem 1rem;border-radius:var(--radius);transition:all .3s;font-weight:500}.nav-link:hover{background:var(--bg-tertiary);transform:translateY(-2px)}.nav-link.active{background:var(--primary);color:#fff}.search-container{position:relative;max-width:400px;width:100%}.search-input{width:100%;padding:.75rem 1rem;padding-left:3rem;background:var(--bg-tertiary);border:2px solid var(--border-dark);border-radius:var(--radius);color:var(--text-light);font-size:.95rem;transition:all .3s}.search-input:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.3)}.search-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text-muted)}.hero{background:var(--gradient-primary);padding:4rem 2rem;text-align:center;border-radius:0 0 var(--radius) var(--radius);margin:0 2rem;margin-top:1rem;position:relative;overflow:hidden}.hero::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');background-size:cover}.hero-title{font-size:3rem;font-weight:700;margin-bottom:1rem;position:relative;z-index:1}.hero-subtitle{font-size:1.25rem;color:rgba(255,255,255,.9);max-width:600px;margin:0 auto;position:relative;z-index:1}.stats{display:flex;justify-content:center;gap:3rem;margin:2rem 0;flex-wrap:wrap}.stat-item{text-align:center}.stat-number{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,var(--secondary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}.stat-label{font-size:.875rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}.store-container{max-width:1400px;margin:0 auto;padding:2rem;display:grid;grid-template-columns:250px 1fr;gap:2rem}.sidebar{background:var(--bg-secondary);border-radius:var(--radius);padding:1.5rem;height:fit-content;position:sticky;top:100px}.filter-group{margin-bottom:1.5rem}.filter-title{font-size:1rem;font-weight:600;margin-bottom:.75rem;color:var(--text-light);display:flex;align-items:center;gap:.5rem}.filter-options{display:flex;flex-direction:column;gap:.5rem}.filter-option{display:flex;align-items:center;gap:.5rem;padding:.5rem;border-radius:calc(var(--radius) - 4px);cursor:pointer;transition:all .2s}.filter-option:hover{background:var(--bg-tertiary)}.filter-option.active{background:var(--primary);color:#fff}.filter-option input[type=checkbox]{width:16px;height:16px;cursor:pointer}.apps-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}.sort-select{padding:.5rem 1rem;background:var(--bg-tertiary);border:2px solid var(--border-dark);border-radius:var(--radius);color:var(--text-light);cursor:pointer}.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem}.app-card{background:var(--bg-secondary);border-radius:var(--radius);overflow:hidden;transition:all .3s;border:2px solid transparent;position:relative}.app-card:hover{transform:translateY(-5px);border-color:var(--primary);box-shadow:var(--shadow)}.app-card.featured{border:2px solid var(--warning);position:relative}.app-card.featured::before{content:'⭐ FEATURED';position:absolute;top:10px;right:10px;background:var(--warning);color:#fff;padding:4px 8px;border-radius:20px;font-size:.75rem;font-weight:600;z-index:1}.app-banner{height:160px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}.app-banner .app-icon{font-size:3rem;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}.app-content{padding:1.5rem}.app-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:.75rem}.app-title{font-size:1.25rem;font-weight:600;margin-bottom:.25rem}.app-category{font-size:.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:2px 8px;border-radius:12px;display:inline-block;margin-bottom:.5rem}.app-description{color:var(--text-muted);font-size:.875rem;margin-bottom:1rem;line-height:1.5}.app-stats{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;font-size:.875rem}.app-rating{display:flex;align-items:center;gap:.25rem;color:var(--warning)}.app-downloads{color:var(--text-muted)}.app-actions{display:flex;gap:.5rem}.btn{padding:.625rem 1.25rem;border:none;border-radius:calc(var(--radius) - 4px);background:var(--primary);color:#fff;cursor:pointer;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:.5rem;text-decoration:none;font-size:.875rem}.btn:hover{background:var(--primary-dark);transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.3)}.btn-outline{background:0 0;border:2px solid var(--primary);color:var(--primary)}.btn-outline:hover{background:var(--primary);color:#fff}.btn-success{background:var(--success)}.btn-success:hover{background:#0da271}.idea-section{background:var(--bg-secondary);border-radius:var(--radius);padding:3rem;margin:4rem 2rem;text-align:center;position:relative;overflow:hidden}.idea-section::before{content:'';position:absolute;top:0;right:0;width:300px;height:300px;background:var(--gradient-secondary);border-radius:50%;transform:translate(150px,-150px);opacity:.1}.idea-title{font-size:2rem;margin-bottom:1rem}.idea-subtitle{color:var(--text-muted);max-width:600px;margin:0 auto 2rem}.idea-form{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}.form-group{text-align:left}.form-label{display:block;margin-bottom:.5rem;font-weight:500}.form-input,.form-textarea{width:100%;padding:.75rem;background:var(--bg-tertiary);border:2px solid var(--border-dark);border-radius:calc(var(--radius) - 4px);color:var(--text-light);font-size:1rem;transition:all .3s}.form-input:focus,.form-textarea:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.3)}.form-textarea{min-height:150px;resize:vertical}.categories{display:flex;justify-content:center;gap:1rem;margin:2rem 0;flex-wrap:wrap}.category-chip{padding:.5rem 1.5rem;background:var(--bg-tertiary);border:2px solid var(--border-dark);border-radius:25px;color:var(--text-light);cursor:pointer;transition:all .3s;font-weight:500}.category-chip:hover{background:var(--primary);border-color:var(--primary);transform:translateY(-2px)}.category-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}.featured-section{background:var(--gradient-accent);border-radius:var(--radius);padding:3rem;margin:2rem;position:relative;overflow:hidden}.featured-section::before{content:'';position:absolute;top:-50%;right:-50%;width:400px;height:400px;background:rgba(255,255,255,.1);border-radius:50%}.footer{background:var(--bg-secondary);padding:3rem 2rem;margin-top:4rem;border-top:1px solid var(--border-dark)}.footer-content{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:2rem}.footer-section h3{margin-bottom:1rem;color:var(--text-light)}.footer-links{list-style:none}.footer-links li{margin-bottom:.5rem}.footer-links a{color:var(--text-muted);text-decoration:none;transition:color .2s}.footer-links a:hover{color:var(--primary)}.copyright{text-align:center;margin-top:2rem;padding-top:2rem;border-top:1px solid var(--border-dark);color:var(--text-muted);font-size:.875rem}@media (max-width:1024px){.store-container{grid-template-columns:1fr}.sidebar{position:static;margin-bottom:2rem}}@media (max-width:768px){.header{flex-direction:column;gap:1rem;padding:1rem}.nav{width:100%;justify-content:center}.search-container{max-width:100%}.hero{margin:.5rem;padding:2rem 1rem}.hero-title{font-size:2rem}.apps-grid{grid-template-columns:1fr}.stats{gap:1.5rem}.stat-number{font-size:2rem}}@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}.floating{animation:float 3s ease-in-out infinite}.custom-checkbox{width:20px;height:20px;border:2px solid var(--border-dark);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}.custom-checkbox.checked{background:var(--primary);border-color:var(--primary)}.custom-checkbox.checked::after{content:'✓';color:#fff;font-size:12px}</style></head><body><div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script><header class="header"><div style="display:flex;align-items:center"><a href="index.html" class="logo">UPPERSTORE</a><span class="logo-tagline">Free Apps Marketplace</span></div><div class="search-container"><span class="search-icon">🔍</span><input type="text" class="search-input" placeholder="Search apps, editors, tools..." id="searchInput"></div><nav class="nav"><a href="index.html" class="nav-link">Home</a><a href="#" class="nav-link active">Store</a><a href="Your_projects.html" class="nav-link">My Apps</a><a href="cloud.html" class="nav-link">Cloud</a></nav></header><section class="hero"><h1 class="hero-title">Discover Amazing Apps & Editors</h1><p class="hero-subtitle">All applications are completely free, created by students for students. Find your perfect tool today!</p><div class="stats"><div class="stat-item"><div class="stat-number" id="totalApps">24</div><div class="stat-label">Total Apps</div></div><div class="stat-item"><div class="stat-number" id="totalDownloads">15.8K</div><div class="stat-label">Downloads</div></div><div class="stat-item"><div class="stat-number" id="activeUsers">1.2K</div><div class="stat-label">Active Users</div></div><div class="stat-item"><div class="stat-number">$0</div><div class="stat-label">Price</div></div></div></section><div class="categories"><div class="category-chip active" data-category="all">All Apps</div><div class="category-chip" data-category="editor">Editors</div><div class="category-chip" data-category="utility">Utilities</div><div class="category-chip" data-category="creative">Creative</div><div class="category-chip" data-category="productivity">Productivity</div><div class="category-chip" data-category="new">New Releases</div><div class="category-chip" data-category="popular">Most Popular</div></div><div class="store-container"><aside class="sidebar"><div class="filter-group"><h3 class="filter-title">🔍 Categories</h3><div class="filter-options"><label class="filter-option active"><div class="custom-checkbox checked"></div><span>All Categories</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Text Editors</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Image Editors</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Video/Audio</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>3D Editors</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Productivity</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Development</span></label></div></div><div class="filter-group"><h3 class="filter-title">⭐ Rating</h3><div class="filter-options"><label class="filter-option"><div class="custom-checkbox"></div><span>★★★★★ (4.5+)</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>★★★★☆ (4.0+)</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>★★★☆☆ (3.0+)</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>All Ratings</span></label></div></div><div class="filter-group"><h3 class="filter-title">📅 Last Updated</h3><div class="filter-options"><label class="filter-option"><div class="custom-checkbox"></div><span>Last 7 Days</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Last 30 Days</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Last 90 Days</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Any Time</span></label></div></div><div class="filter-group"><h3 class="filter-title">📊 Features</h3><div class="filter-options"><label class="filter-option"><div class="custom-checkbox"></div><span>Cloud Integration</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Collaboration</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Offline Mode</span></label><label class="filter-option"><div class="custom-checkbox"></div><span>Export Options</span></label></div></div><button class="btn" style="width:100%;margin-top:1rem" id="applyFilters">Apply Filters</button><button class="btn btn-outline" style="width:100%;margin-top:.5rem" id="resetFilters">Reset All</button></aside><main class="apps-content"><div class="apps-header"><h2>Available Applications</h2><select class="sort-select" id="sortSelect"><option value="popular">Most Popular</option><option value="newest">Newest First</option><option value="rating">Highest Rated</option><option value="name">Alphabetical</option><option value="downloads">Most Downloads</option></select></div><div class="apps-grid" id="appsGrid"></div></main></div><section class="featured-section"><div style="position:relative;z-index:1"><h2 style="font-size:2.5rem;margin-bottom:1rem;color:#fff">🎉 App of the Month</h2><p style="font-size:1.25rem;color:rgba(255,255,255,.9);margin-bottom:2rem">Calculator - Advanced calculator for everyone</p><a href="/calculator.html" class="btn" style="background:#fff;color:#4facfe">Try Now →</a></div></section><section class="idea-section"><h2 class="idea-title">Have an Idea? Share it with us!</h2><p class="idea-subtitle">We're always looking for new ideas to improve UpperOffice. Submit your app idea, feature request, or just send us a message. Your idea could be the next big thing!</p><div class="idea-form" id="ideaForm"><div class="form-group"><label class="form-label">Your Name</label><input type="text" class="form-input" id="userName" placeholder="John Doe"></div><div class="form-group"><label class="form-label">Email Address</label><input type="email" class="form-input" id="userEmail" placeholder="john@example.com"></div><div class="form-group"><label class="form-label">Idea Type</label><select class="form-input" id="ideaType"><option value="app">New App Idea</option><option value="feature">Feature Request</option><option value="improvement">Improvement</option><option value="bug">Bug Report</option><option value="other">Other</option></select></div><div class="form-group"><label class="form-label">Your Idea / Message</label><textarea class="form-textarea" id="ideaMessage" placeholder="Describe your idea in detail... What problem does it solve? How should it work?"></textarea></div><div class="form-group" style="text-align:center"><button type="submit" class="btn btn-success" style="font-size:1rem;padding:1rem 2rem" id="submitIdea">🚀 Submit Idea</button><p style="color:var(--text-muted);font-size:.875rem;margin-top:1rem">Your idea will be sent directly to our team at info@upperoffice.site</p></div></div></section><footer class="footer"><div class="footer-content"><div class="footer-section"><h3>UpperStore</h3><p style="color:var(--text-muted)">Free apps marketplace created by students for students. All applications are completely free to use.</p></div><div class="footer-section"><h3>Quick Links</h3><ul class="footer-links"><li><a href="index.html">Home</a></li><li><a href="#">All Apps</a></li><li><a href="Your_projects.html">My Projects</a></li><li><a href="cloud.html">Cloud Storage</a></li></ul></div><div class="footer-section"><h3>Support</h3><ul class="footer-links"><li><a href="User_guide.html">User Guide</a></li><li><a href="Suport_us.html">Support Us</a></li><li><a href="#" id="contactUs">Contact</a></li><li><a href="#" id="reportIssue">Report Issue</a></li></ul></div><div class="footer-section"><h3>Connect</h3><ul class="footer-links"><li><a href="https://github.com/schmic75-gasos/UpperOffice/">GitHub</a></li><li><a href="mailto:info@upperoffice.site">Email</a></li><li><a href="#">Twitter</a></li><li><a href="#">Discord</a></li></ul></div></div><div class="copyright">&copy; 2025 UpperStore - Free Apps Marketplace. All apps are free to use.<br><small>Made with ❤️ by students for students</small></div></footer><script>class UpperStore {
+            constructor() {
+                this.apps = [];
+                this.filteredApps = [];
+                this.currentCategory = 'all';
+                this.currentSort = 'popular';
+                this.init();
+            }
+            
+            init() {
+                this.loadApps();
+                this.bindEvents();
+                this.updateStats();
+            }
+            
+            loadApps() {
+                // Sample apps data - in real app, this would come from an API
+                this.apps = [
+                    {
+                        id: 1,
+                        name: "Vector Editor",
+                        category: "editor",
+                        type: "creative",
+                        description: "Advanced vector graphics editor with real-time collaboration, layers, and export to multiple formats.",
+                        icon: "🎨",
+                        rating: 4.8,
+                        downloads: 2547,
+                        featured: false,
+                        tags: ["cloud", "collaboration", "export"],
+                        url: "vectors.html",
+                        updated: "2025-01-15"
+                    },
+                    {
+                        id: 2,
+                        name: "ImagePro Editor",
+                        category: "editor",
+                        type: "creative",
+                        description: "Professional image editing with filters, adjustments, layers, and cloud integration.",
+                        icon: "🖼️",
+                        rating: 4.7,
+                        downloads: 3189,
+                        featured: true,
+                        tags: ["cloud", "filters", "layers"],
+                        url: "pictureeditor.html",
+                        updated: "2025-01-10"
+                    },
+                    {
+                        id: 3,
+                        name: "Document Editor",
+                        category: "editor",
+                        type: "productivity",
+                        description: "Full-featured document editor with real-time collaboration and cloud saving.",
+                        icon: "📄",
+                        rating: 4.5,
+                        downloads: 1876,
+                        featured: true,
+                        tags: ["cloud", "collaboration", "real-time"],
+                        url: "documenteditor.html",
+                        updated: "2025-01-12"
+                    },
+                    {
+                        id: 4,
+                        name: "Presentation Editor",
+                        category: "editor",
+                        type: "productivity",
+                        description: "Create stunning presentations with animations, transitions, and templates.",
+                        icon: "📊",
+                        rating: 4.3,
+                        downloads: 1423,
+                        featured: true,
+                        tags: ["templates", "animations", "export"],
+                        url: "presentationeditor.html",
+                        updated: "2025-01-05"
+                    },
+                    {
+                        id: 5,
+                        name: "Video Editor",
+                        category: "editor",
+                        type: "creative",
+                        description: "Simple yet powerful video editing tool with effects, transitions, and audio mixing.",
+                        icon: "🎬",
+                        rating: 4.2,
+                        downloads: 987,
+                        featured: true,
+                        tags: ["video", "audio", "effects"],
+                        url: "videoaudioeditor.html",
+                        updated: "2025-01-08"
+                    },
+                    {
+                        id: 6,
+                        name: "3D Model Editor",
+                        category: "editor",
+                        type: "creative",
+                        description: "Create and edit 3D models with intuitive tools and real-time rendering.",
+                        icon: "🦄",
+                        rating: 4.6,
+                        downloads: 654,
+                        featured: true,
+                        tags: ["3d", "rendering", "models"],
+                        url: "triDeditor.html",
+                        updated: "2025-01-18"
+                    },
+                    {
+                        id: 7,
+                        name: "Code IDE",
+                        category: "utility",
+                        type: "development",
+                        description: "Web-based IDE with syntax highlighting, debugging, and project management.",
+                        icon: "💻",
+                        rating: 4.4,
+                        downloads: 2310,
+                        featured: false,
+                        tags: ["code", "debugging", "projects"],
+                        url: "ide.html",
+                        updated: "2025-01-03"
+                    },
+                    {
+                        id: 8,
+                        name: "Table Editor",
+                        category: "editor",
+                        type: "productivity",
+                        description: "Advanced spreadsheet editor with formulas, charts, and data analysis.",
+                        icon: "📈",
+                        rating: 4.1,
+                        downloads: 1123,
+                        featured: true,
+                        tags: ["spreadsheet", "charts", "formulas"],
+                        url: "tableeditor.html",
+                        updated: "2023-12-28"
+                    },
+                    {
+                        id: 9,
+                        name: "Audio Editor",
+                        category: "editor",
+                        type: "creative",
+                        description: "Professional audio editing with effects, filters, and waveform visualization.",
+                        icon: "🎵",
+                        rating: 4.0,
+                        downloads: 876,
+                        featured: false,
+                        tags: ["audio", "effects", "waveform"],
+                        url: "audioeditor.html",
+                        updated: "2025-01-02"
+                    },
+                    {
+                        id: 10,
+                        name: "Calculator Pro",
+                        category: "utility",
+                        type: "productivity",
+                        description: "Scientific calculator with graphing, equations, and calculation history.",
+                        icon: "🧮",
+                        rating: 4.7,
+                        downloads: 1987,
+                        featured: true,
+                        tags: ["calculator", "scientific", "graphing"],
+                        url: "calculator.html",
+                        updated: "2025-01-14"
+                    },
+                    {
+                        id: 11,
+                        name: "Text Editor",
+                        category: "editor",
+                        type: "productivity",
+                        description: "Minimalist text editor with Markdown support and cloud sync.",
+                        icon: "📝",
+                        rating: 4.2,
+                        downloads: 1543,
+                        featured: false,
+                        tags: ["text", "markdown", "sync"],
+                        url: "texteditor.html",
+                        updated: "2025-01-07"
+                    },
+                    {
+                        id: 12,
+                        name: "File Converter",
+                        category: "utility",
+                        type: "productivity",
+                        description: "Convert files between different formats (images, documents, audio) - COMING SOON.",
+                        icon: "🔄",
+                        rating: 4.5,
+                        downloads: 0,
+                        featured: false,
+                        tags: ["converter", "files", "formats", "COMING SOON"],
+                        url: "#",
+                        updated: "2025-01-16"
+                    },
+                    {
+                        
+                        id: 13,
+                        name: "Image editor - retro edition",
+                        category: "editor",
+                        type: "creative",
+                        description: "Image editor in retro style",
+                        icon: "🖼️",
+                        rating: 4.0,
+                        downloads: 14,
+                        featured: false,
+                        tags: ["cloud", "filters", "layers"],
+                        url: "pictureeditorretro.html",
+                        updated: "2025-01-16"},
+                        {
+                        id: 14,
+                        name: "GPX editor",
+                        category: "utility",
+                        type: "productivity",
+                        description: "Editor your GPX files with professional tools and OpenStreetMap!",
+                        icon: "🗺️",
+                        rating: 3.9,
+                        downloads: 989,
+                        featured: false,
+                        tags: ["map", "files", "formats",],
+                        url: "gpxeditor.html",
+                        updated: "2025-01-16"
+                    }
+                ];
+                this.filteredApps = [...this.apps];
+                this.renderApps();
+            }
+            
+            bindEvents() {
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.searchApps(e.target.value);
+                });
+                
+                document.getElementById('sortSelect').addEventListener('change', (e) => {
+                    this.currentSort = e.target.value;
+                    this.sortApps();
+                });
+                
+                document.querySelectorAll('.category-chip').forEach(chip => {
+                    chip.addEventListener('click', (e) => {
+                        document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentCategory = e.target.dataset.category;
+                        this.filterApps();
+                    });
+                });
+                
+                document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('click', (e) => {
+                        const checkboxEl = e.target.closest('.custom-checkbox');
+                        checkboxEl.classList.toggle('checked');
+                    });
+                });
+                
+                document.getElementById('applyFilters').addEventListener('click', () => {
+                    this.applyAdvancedFilters();
+                });
+                
+                document.getElementById('resetFilters').addEventListener('click', () => {
+                    this.resetFilters();
+                });
+               
+                document.getElementById('submitIdea').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.submitIdea();
+                });
+                
+                document.getElementById('contactUs').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.openContactForm();
+                });
+                
+                document.getElementById('reportIssue').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.openIssueForm();
+                });
+            }
+            renderApps() {
+                const grid = document.getElementById('appsGrid');
+                grid.innerHTML = '';
+                this.filteredApps.forEach(app => {
+                    const card = document.createElement('div');
+                    card.className = `app-card ${app.featured ? 'featured' : ''}`;
+                    const ratingStars = '★'.repeat(Math.floor(app.rating)) + '☆'.repeat(5 - Math.floor(app.rating));
+                    const downloadsFormatted = app.downloads >= 1000 ? `${(app.downloads/1000).toFixed(1)}K` : app.downloads;
+                    card.innerHTML = `
+                        <div class="app-banner">
+                            <div class="app-icon floating">${app.icon}</div>
+                        </div>
+                        <div class="app-content">
+                            <div class="app-header">
+                                <div>
+                                    <h3 class="app-title">${app.name}</h3>
+                                    <span class="app-category">${app.type.charAt(0).toUpperCase() + app.type.slice(1)}</span>
+                                </div>
+                            </div>
+                            <p class="app-description">${app.description}</p>
+                            <div class="app-stats">
+                                <div class="app-rating">
+                                    <span>${ratingStars}</span>
+                                    <span>${app.rating}</span>
+                                </div>
+                                <div class="app-downloads">${downloadsFormatted} downloads</div>
+                            </div>
+                            <div class="app-actions">
+                                <a href="${app.url}" class="btn">
+                                    <span>🚀</span>
+                                    Open App
+                                </a>
+                                <button class="btn btn-outline" data-app-id="${app.id}">
+                                    <span>⭐</span>
+                                    Rate
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    grid.appendChild(card);
+                });
+            }
+            searchApps(query) {
+                if (!query.trim()) {
+                    this.filteredApps = [...this.apps];
+                } else {
+                    const searchTerm = query.toLowerCase();
+                    this.filteredApps = this.apps.filter(app => 
+                        app.name.toLowerCase().includes(searchTerm) ||
+                        app.description.toLowerCase().includes(searchTerm) ||
+                        app.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+                    );
+                }
+                this.applyCategoryFilter();
+                this.sortApps();
+            }
+            filterApps() {
+                if (this.currentCategory === 'all') {
+                    this.filteredApps = [...this.apps];
+                } else if (this.currentCategory === 'new') {
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    this.filteredApps = this.apps.filter(app => {
+                        const updatedDate = new Date(app.updated);
+                        return updatedDate > thirtyDaysAgo;
+                    });
+                } else if (this.currentCategory === 'popular') {
+                    this.filteredApps = [...this.apps].sort((a, b) => b.downloads - a.downloads);
+                } else {
+                    this.filteredApps = this.apps.filter(app => 
+                        app.category === this.currentCategory || 
+                        app.type === this.currentCategory
+                    );
+                }
+                this.sortApps();
+            }
+            applyCategoryFilter() {
+                if (this.currentCategory !== 'all' && this.currentCategory !== 'new' && this.currentCategory !== 'popular') {
+                    this.filteredApps = this.filteredApps.filter(app => 
+                        app.category === this.currentCategory || 
+                        app.type === this.currentCategory
+                    );
+                }
+            }
+            applyAdvancedFilters() {
+                const categoryFilters = Array.from(document.querySelectorAll('.filter-option.active'))
+                    .map(el => el.textContent.trim());
+
+                const ratingFilter = document.querySelector('.filter-option input[type="checkbox"]:checked')?.parentElement;
+                if (ratingFilter && ratingFilter.textContent.includes('★★★★★')) {
+                    this.filteredApps = this.filteredApps.filter(app => app.rating >= 4.5);
+                }
+                
+                this.sortApps();
+            }
+            resetFilters() {
+                document.querySelectorAll('.custom-checkbox').forEach(cb => {
+                    cb.classList.remove('checked');
+                });
+                
+                document.querySelectorAll('.filter-option').forEach((option, index) => {
+                    if (index === 0) {
+                        option.querySelector('.custom-checkbox').classList.add('checked');
+                    } else {
+                        option.querySelector('.custom-checkbox').classList.remove('checked');
+                    }
+                });
+                
+                this.currentCategory = 'all';
+                document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                document.querySelector('.category-chip[data-category="all"]').classList.add('active');
+                
+                this.filteredApps = [...this.apps];
+                this.sortApps();
+            }
+            sortApps() {
+                switch(this.currentSort) {
+                    case 'newest':
+                        this.filteredApps.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+                        break;
+                    case 'rating':
+                        this.filteredApps.sort((a, b) => b.rating - a.rating);
+                        break;
+                    case 'name':
+                        this.filteredApps.sort((a, b) => a.name.localeCompare(b.name));
+                        break;
+                    case 'downloads':
+                        this.filteredApps.sort((a, b) => b.downloads - a.downloads);
+                        break;
+                    case 'popular':
+                    default:
+                        this.filteredApps.sort((a, b) => {
+                            const scoreA = (a.rating * 100) + (a.downloads / 100);
+                            const scoreB = (b.rating * 100) + (b.downloads / 100);
+                            return scoreB - scoreA;
+                        });
+                        break;
+                }
+                this.renderApps();
+            }
+            updateStats() {
+                const totalDownloads = this.apps.reduce((sum, app) => sum + app.downloads, 0);
+                document.getElementById('totalDownloads').textContent = 
+                    totalDownloads >= 1000 ? `${(totalDownloads/1000).toFixed(1)}K` : totalDownloads;
+                
+                setInterval(() => {
+                    const activeUsers = 3200 + Math.floor(Math.random() * 200);
+                    document.getElementById('activeUsers').textContent = 
+                        activeUsers >= 1000 ? `${(activeUsers/1000).toFixed(1)}K` : activeUsers;
+                }, 10000);
+            }
+            
+            submitIdea() {
+                const name = document.getElementById('userName').value.trim();
+                const email = document.getElementById('userEmail').value.trim();
+                const type = document.getElementById('ideaType').value;
+                const message = document.getElementById('ideaMessage').value.trim();
+                
+                if (!name || !email || !message) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                if (!this.validateEmail(email)) {
+                    alert('Please enter a valid email address');
+                    return;
+                }
+                
+                const subject = `UpperStore Idea: ${type.charAt(0).toUpperCase() + type.slice(1)} from ${name}`;
+                const body = `From: ${name} (${email})\n\nType: ${type}\n\nMessage:\n${message}\n\n---\nSent from UpperStore`;
+                
+                const mailtoLink = `mailto:info@upperoffice.site?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                
+                window.location.href = mailtoLink;
+                const btn = document.getElementById('submitIdea');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Idea Submitted!';
+                btn.style.background = 'var(--success)';
+                document.getElementById('ideaForm').reset();
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 3000);
+            }
+            openContactForm() {
+                document.getElementById('userName').value = '';
+                document.getElementById('userEmail').value = '';
+                document.getElementById('ideaType').value = 'other';
+                document.getElementById('ideaMessage').value = '';
+                
+                document.querySelector('.idea-section').scrollIntoView({ behavior: 'smooth' });
+            }
+            openIssueForm() {
+                document.getElementById('userName').value = '';
+                document.getElementById('userEmail').value = '';
+                document.getElementById('ideaType').value = 'bug';
+                document.getElementById('ideaMessage').value = 'Describe the issue you encountered...';
+                
+                document.querySelector('.idea-section').scrollIntoView({ behavior: 'smooth' });
+            }
+            validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            window.upperStore = new UpperStore();
+            setInterval(() => {
+                document.querySelectorAll('.floating').forEach(el => {
+                    el.style.animation = 'float 3s ease-in-out infinite';
+                });
+            }, 100);
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-outline[data-app-id]')) {
+                    const appId = e.target.closest('.btn-outline').dataset.appId;
+                    const app = window.upperStore.apps.find(a => a.id == appId);
+                    
+                    if (app) {
+                        const rating = prompt(`Rate ${app.name} (1-5 stars):`, app.rating);
+                        if (rating && rating >= 1 && rating <= 5) {
+                            app.rating = parseFloat(rating);
+                            window.upperStore.sortApps();
+                            alert(`Thanks for rating ${app.name}!`);
+                        }
+                    }
+                }
+            });
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.btn:not(.btn-outline)') && !e.target.closest('.idea-form')) {
+                    const card = e.target.closest('.app-card');
+                    if (card) {
+                        const title = card.querySelector('.app-title').textContent;
+                        const downloadsElement = card.querySelector('.app-downloads');
+                        const currentDownloads = downloadsElement.textContent;
+                        const btn = e.target.closest('.btn');
+                        const originalText = btn.textContent;
+                        btn.textContent = '⬇️ Downloading...';
+                        btn.style.background = 'var(--success)';
+                        
+                        setTimeout(() => {
+                            btn.textContent = '✅ Downloaded!';
+                            setTimeout(() => {
+                                btn.textContent = originalText;
+                                btn.style.background = '';
+                                const match = currentDownloads.match(/([\d.]+)(K?)/);
+                                if (match) {
+                                    let num = parseFloat(match[1]);
+                                    const isK = match[2] === 'K';
+                                    
+                                    if (isK) {
+                                        num += 0.1;
+                                        downloadsElement.textContent = `${num.toFixed(1)}K downloads`;
+                                    } else {
+                                        num += 1;
+                                        downloadsElement.textContent = `${num} downloads`;
+                                    }
+                                }
+                            }, 1000);
+                        }, 1000);
+                    }
+                }
+            });
+        });</script></body></html>

@@ -1,0 +1,518 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UPPER Office - Audio Studio</title><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Montserrat,sans-serif;background:linear-gradient(135deg,#1a1a2e 0,#16213e 100%);color:#fff;min-height:100vh}header{background:rgba(0,0,0,.5);backdrop-filter:blur(10px);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #00d4ff}.logo{font-size:1.5rem;font-weight:700;color:#00d4ff;text-decoration:none;letter-spacing:2px}.navigation nav{display:flex;list-style:none;gap:2rem;align-items:center}.nav-item{position:relative}.nav-link{color:#fff;text-decoration:none;font-weight:500;transition:color .3s}.nav-link:hover{color:#00d4ff}.login-container{position:relative}.login-tooltip{display:none;position:absolute;top:100%;right:0;background:rgba(0,0,0,.9);padding:.5rem;border-radius:5px;font-size:.75rem;width:200px;margin-top:.5rem}.login-container:hover .login-tooltip{display:block}main{padding:2rem;max-width:1400px;margin:0 auto}.studio-container{background:rgba(0,0,0,.6);border-radius:15px;padding:2rem;border:2px solid #00d4ff}.studio-title{font-size:2rem;margin-bottom:2rem;text-align:center;color:#00d4ff;text-transform:uppercase;letter-spacing:3px}.audio-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem;padding:1rem;background:rgba(255,255,255,.05);border-radius:10px}.control-group{display:flex;flex-direction:column;gap:.5rem}.control-group label{font-weight:500;color:#00d4ff;font-size:.9rem}input[type=range]{width:100%;height:8px;background:rgba(255,255,255,.2);border-radius:5px;outline:0;-webkit-appearance:none}input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;background:#00d4ff;cursor:pointer;border-radius:50%}input[type=range]::-moz-range-thumb{width:20px;height:20px;background:#00d4ff;cursor:pointer;border-radius:50%}.value-display{font-family:'Roboto Mono',monospace;color:#fff;font-size:.9rem}.beat-pads-section{margin-bottom:2rem}.section-title{font-size:1.3rem;margin-bottom:1rem;color:#00d4ff;text-transform:uppercase}.beat-pads{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1rem}.pad{aspect-ratio:1;background:linear-gradient(145deg,#2a2a4a,#1a1a2a);border:2px solid #00d4ff;border-radius:10px;display:flex;flex-direction:column;justify-content:center;align-items:center;cursor:pointer;transition:all .1s;position:relative;overflow:hidden}.pad:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(0,212,255,.5)}.pad.active{background:linear-gradient(145deg,#00d4ff,#09c);transform:scale(.95)}.pad-key{font-size:1.5rem;font-weight:700;font-family:'Roboto Mono',monospace}.pad-label{font-size:.8rem;margin-top:.5rem;opacity:.8}.file-controls{display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}.btn{padding:.8rem 1.5rem;background:linear-gradient(145deg,#00d4ff,#09c);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;transition:all .3s;font-family:Montserrat,sans-serif;text-transform:uppercase;letter-spacing:1px}.btn:hover{transform:translateY(-2px);box-shadow:0 5px 20px rgba(0,212,255,.4)}.btn-secondary{background:linear-gradient(145deg,#ff6b6b,#c55)}input[type=file]{display:none}.waveform-container{background:rgba(0,0,0,.5);border-radius:10px;padding:1rem;margin-bottom:2rem;min-height:150px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(0,212,255,.3)}#waveform{width:100%;height:120px}.status{text-align:center;padding:1rem;background:rgba(0,212,255,.1);border-radius:8px;font-family:'Roboto Mono',monospace;margin-bottom:1rem}.instructions{background:rgba(255,255,255,.05);padding:1rem;border-radius:8px;margin-top:2rem;line-height:1.6}.instructions h3{color:#00d4ff;margin-bottom:.5rem}@media (max-width:768px){.beat-pads{grid-template-columns:repeat(2,1fr)}.audio-controls{grid-template-columns:1fr}}</style></head><body><div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script><header><a href="index.html" class="logo">UPPER OFFICE</a><div class="navigation"><nav><li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li><li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li><li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li><li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li><li class="nav-item login-container"><a href="Login.html" class="nav-link login-link">👨‍🚒</a><div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div></li></nav></div></header><main><div class="studio-container"><h1 class="studio-title">🎵 Audio Studio Pro 🎵</h1><h4 class="studio-title">BETA VERSION</h4><div class="status" id="status">Ready to create music 🎶</div><div class="file-controls"><label for="audioFile" class="btn">📁 Import MP3</label><input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,audio/*"><button class="btn" id="playBtn">▶️ Play</button><button class="btn btn-secondary" id="stopBtn">⏹️ Stop</button><button class="btn" id="exportBtn">💾 Export MP3</button><button class="btn btn-secondary" id="clearBtn">🗑️ Clear</button></div><div class="waveform-container"><canvas id="waveform"></canvas></div><div class="audio-controls"><div class="control-group"><label>Volume</label><input type="range" id="volume" min="0" max="100" value="70"><span class="value-display" id="volumeValue">70%</span></div><div class="control-group"><label>Pitch</label><input type="range" id="pitch" min="0.5" max="2" step="0.1" value="1"><span class="value-display" id="pitchValue">1.0x</span></div><div class="control-group"><label>Reverb</label><input type="range" id="reverb" min="0" max="100" value="0"><span class="value-display" id="reverbValue">0%</span></div><div class="control-group"><label>Delay</label><input type="range" id="delay" min="0" max="100" value="0"><span class="value-display" id="delayValue">0%</span></div></div><div class="beat-pads-section"><h2 class="section-title">🥁 Beat Pads - Press Keys</h2><div class="beat-pads"><div class="pad" data-key="Q" data-sound="kick"><div class="pad-key">Q</div><div class="pad-label">Kick</div></div><div class="pad" data-key="W" data-sound="snare"><div class="pad-key">W</div><div class="pad-label">Snare</div></div><div class="pad" data-key="E" data-sound="hihat"><div class="pad-key">E</div><div class="pad-label">Hi-Hat</div></div><div class="pad" data-key="R" data-sound="clap"><div class="pad-key">R</div><div class="pad-label">Clap</div></div><div class="pad" data-key="A" data-sound="tom"><div class="pad-key">A</div><div class="pad-label">Tom</div></div><div class="pad" data-key="S" data-sound="crash"><div class="pad-key">S</div><div class="pad-label">Crash</div></div><div class="pad" data-key="D" data-sound="ride"><div class="pad-key">D</div><div class="pad-label">Ride</div></div><div class="pad" data-key="F" data-sound="perc"><div class="pad-key">F</div><div class="pad-label">Perc</div></div></div></div><div class="instructions"><h3>📖 Návod k použití:</h3><p><strong>Klávesy:</strong>Q, W, E, R, A, S, D, F for playing beats<br><strong>Import:</strong>Load MP3 file with "Import MP3" button<br><strong>Úpravy:</strong>Adjust volume, pitch, reverb a delay with scrollbars<br><strong>Export:</strong>Save your project with button "Export MP3"<br><strong>Tip:</strong>Combine beats with loaded music for profesional audio!</p></div></div></main><script>// Audio Context Setup
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
+        let audioBuffer = null;
+        let sourceNode = null;
+        let gainNode = null;
+        let masterGainNode = null;
+        let beatsGainNode = null;
+        let isPlaying = false;
+        let startTime = 0;
+        let pauseTime = 0;
+        let convolverNode = null;
+        let delayNode = null;
+        let delayFeedbackNode = null;
+
+        function initializeAudioNodes() {
+            masterGainNode = audioContext.createGain();
+            masterGainNode.connect(audioContext.destination);
+            
+            gainNode = audioContext.createGain();
+            gainNode.connect(masterGainNode);
+            
+            beatsGainNode = audioContext.createGain();
+            beatsGainNode.gain.value = 0.8;
+            beatsGainNode.connect(masterGainNode);
+            
+            // Reverb (Convolver)
+            convolverNode = audioContext.createConvolver();
+            convolverNode.buffer = createReverbBuffer();
+            
+            // Delay
+            delayNode = audioContext.createDelay(5.0);
+            delayFeedbackNode = audioContext.createGain();
+            
+            // Connect delay feedback loop
+            delayNode.connect(delayFeedbackNode);
+            delayFeedbackNode.connect(delayNode);
+        }
+
+        initializeAudioNodes();
+
+        // Create reverb impulse response
+        function createReverbBuffer() {
+            const sampleRate = audioContext.sampleRate;
+            const length = sampleRate * 2;
+            const impulse = audioContext.createBuffer(2, length, sampleRate);
+            
+            for (let channel = 0; channel < 2; channel++) {
+                const channelData = impulse.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+                }
+            }
+            return impulse;
+        }
+
+        // Beat sounds using Web Audio API
+        const beatSounds = {
+            kick: (time) => {
+                const osc = audioContext.createOscillator();
+                const oscGain = audioContext.createGain();
+                
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+                
+                oscGain.gain.setValueAtTime(1, time);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+                
+                osc.connect(oscGain);
+                oscGain.connect(beatsGainNode);
+                
+                osc.start(time);
+                osc.stop(time + 0.5);
+            },
+            snare: (time) => {
+                const noise = audioContext.createBufferSource();
+                const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.2, audioContext.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                
+                for (let i = 0; i < noiseBuffer.length; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                
+                noise.buffer = noiseBuffer;
+                const noiseGain = audioContext.createGain();
+                noiseGain.gain.setValueAtTime(1, time);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                
+                noise.connect(noiseGain);
+                noiseGain.connect(beatsGainNode);
+                
+                noise.start(time);
+            },
+            hihat: (time) => {
+                const noise = audioContext.createBufferSource();
+                const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.05, audioContext.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                
+                for (let i = 0; i < noiseBuffer.length; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                
+                noise.buffer = noiseBuffer;
+                
+                const bandpass = audioContext.createBiquadFilter();
+                bandpass.type = 'bandpass';
+                bandpass.frequency.value = 10000;
+                
+                const noiseGain = audioContext.createGain();
+                noiseGain.gain.setValueAtTime(0.3, time);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+                
+                noise.connect(bandpass);
+                bandpass.connect(noiseGain);
+                noiseGain.connect(beatsGainNode);
+                
+                noise.start(time);
+            },
+            clap: (time) => {
+                for (let i = 0; i < 3; i++) {
+                    const delay = i * 0.03;
+                    const noise = audioContext.createBufferSource();
+                    const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.1, audioContext.sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    
+                    for (let j = 0; j < noiseBuffer.length; j++) {
+                        output[j] = Math.random() * 2 - 1;
+                    }
+                    
+                    noise.buffer = noiseBuffer;
+                    const noiseGain = audioContext.createGain();
+                    noiseGain.gain.setValueAtTime(0.5, time + delay);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.01, time + delay + 0.1);
+                    
+                    noise.connect(noiseGain);
+                    noiseGain.connect(beatsGainNode);
+                    noise.start(time + delay);
+                }
+            },
+            tom: (time) => {
+                const osc = audioContext.createOscillator();
+                const oscGain = audioContext.createGain();
+                
+                osc.frequency.setValueAtTime(220, time);
+                osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.4);
+                
+                oscGain.gain.setValueAtTime(0.7, time);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+                
+                osc.connect(oscGain);
+                oscGain.connect(beatsGainNode);
+                
+                osc.start(time);
+                osc.stop(time + 0.4);
+            },
+            crash: (time) => {
+                const noise = audioContext.createBufferSource();
+                const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 1, audioContext.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                
+                for (let i = 0; i < noiseBuffer.length; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                
+                noise.buffer = noiseBuffer;
+                
+                const highpass = audioContext.createBiquadFilter();
+                highpass.type = 'highpass';
+                highpass.frequency.value = 5000;
+                
+                const noiseGain = audioContext.createGain();
+                noiseGain.gain.setValueAtTime(0.5, time);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 1);
+                
+                noise.connect(highpass);
+                highpass.connect(noiseGain);
+                noiseGain.connect(beatsGainNode);
+                
+                noise.start(time);
+            },
+            ride: (time) => {
+                const noise = audioContext.createBufferSource();
+                const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.3, audioContext.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                
+                for (let i = 0; i < noiseBuffer.length; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                
+                noise.buffer = noiseBuffer;
+                
+                const bandpass = audioContext.createBiquadFilter();
+                bandpass.type = 'bandpass';
+                bandpass.frequency.value = 8000;
+                
+                const noiseGain = audioContext.createGain();
+                noiseGain.gain.setValueAtTime(0.3, time);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+                
+                noise.connect(bandpass);
+                bandpass.connect(noiseGain);
+                noiseGain.connect(beatsGainNode);
+                
+                noise.start(time);
+            },
+            perc: (time) => {
+                const osc = audioContext.createOscillator();
+                const oscGain = audioContext.createGain();
+                
+                osc.frequency.setValueAtTime(800, time);
+                osc.frequency.exponentialRampToValueAtTime(400, time + 0.1);
+                
+                oscGain.gain.setValueAtTime(0.5, time);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                
+                osc.connect(oscGain);
+                oscGain.connect(beatsGainNode);
+                
+                osc.start(time);
+                osc.stop(time + 0.1);
+            }
+        };
+
+        // Play beat sound
+        function playBeat(sound) {
+            if (beatSounds[sound]) {
+                beatSounds[sound](audioContext.currentTime);
+            }
+        }
+
+        // Beat pad interactions
+        const pads = document.querySelectorAll('.pad');
+        
+        pads.forEach(pad => {
+            pad.addEventListener('click', () => {
+                const sound = pad.dataset.sound;
+                playBeat(sound);
+                animatePad(pad);
+            });
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toUpperCase();
+            const pad = document.querySelector(`[data-key="${key}"]`);
+            
+            if (pad) {
+                const sound = pad.dataset.sound;
+                playBeat(sound);
+                animatePad(pad);
+            }
+        });
+
+        function animatePad(pad) {
+            pad.classList.add('active');
+            setTimeout(() => {
+                pad.classList.remove('active');
+            }, 100);
+        }
+
+        // File import
+        document.getElementById('audioFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                updateStatus(`✅ Loaded: ${file.name}`);
+                drawWaveform();
+            }
+        });
+
+        // Play/Stop controls
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (!audioBuffer) {
+                updateStatus('⚠️ Please import an MP3 file first');
+                return;
+            }
+            
+            if (isPlaying) {
+                return;
+            }
+            
+            playAudio();
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            stopAudio();
+        });
+
+        function playAudio() {
+            sourceNode = audioContext.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+            sourceNode.playbackRate.value = parseFloat(document.getElementById('pitch').value);
+            
+            // Reconnect audio graph
+            sourceNode.connect(gainNode);
+            
+            const reverbAmount = parseInt(document.getElementById('reverb').value) / 100;
+            const delayAmount = parseInt(document.getElementById('delay').value) / 100;
+            
+            if (reverbAmount > 0) {
+                const dryGain = audioContext.createGain();
+                const wetGain = audioContext.createGain();
+                dryGain.gain.value = 1 - reverbAmount;
+                wetGain.gain.value = reverbAmount;
+                
+                sourceNode.connect(dryGain);
+                dryGain.connect(gainNode);
+                sourceNode.connect(convolverNode);
+                convolverNode.connect(wetGain);
+                wetGain.connect(gainNode);
+            }
+            
+            if (delayAmount > 0) {
+                delayNode.delayTime.value = delayAmount;
+                delayFeedbackNode.gain.value = delayAmount * 0.5;
+                sourceNode.connect(delayNode);
+                delayNode.connect(gainNode);
+            }
+            
+            sourceNode.start(0, pauseTime);
+            startTime = audioContext.currentTime - pauseTime;
+            isPlaying = true;
+            
+            sourceNode.onended = () => {
+                if (isPlaying) {
+                    isPlaying = false;
+                    pauseTime = 0;
+                    updateStatus('✅ Playback finished');
+                }
+            };
+            
+            updateStatus('▶️ Playing...');
+        }
+
+        function stopAudio() {
+            if (sourceNode && isPlaying) {
+                pauseTime = audioContext.currentTime - startTime;
+                sourceNode.stop();
+                isPlaying = false;
+                updateStatus('⏹️ Stopped');
+            }
+        }
+
+        // Audio controls
+        document.getElementById('volume').addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            gainNode.gain.value = value / 100;
+            document.getElementById('volumeValue').textContent = `${value}%`;
+        });
+
+        document.getElementById('pitch').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            if (sourceNode && isPlaying) {
+                sourceNode.playbackRate.value = value;
+            }
+            document.getElementById('pitchValue').textContent = `${value.toFixed(1)}x`;
+        });
+
+        document.getElementById('reverb').addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            document.getElementById('reverbValue').textContent = `${value}%`;
+        });
+
+        document.getElementById('delay').addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            document.getElementById('delayValue').textContent = `${value}%`;
+        });
+
+        // Export MP3
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            if (!audioBuffer) {
+                updateStatus('⚠️ No audio to export');
+                return;
+            }
+            
+            // Convert buffer to WAV (MP3 encoding requires additional library)
+            const wav = bufferToWave(audioBuffer);
+            const blob = new Blob([wav], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audio-studio-${Date.now()}.wav`;
+            a.click();
+            
+            updateStatus('💾 Exported as WAV (MP3 encoding requires server)');
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            stopAudio();
+            audioBuffer = null;
+            pauseTime = 0;
+            document.getElementById('audioFile').value = '';
+            clearWaveform();
+            updateStatus('🗑️ Cleared');
+        });
+
+        // Buffer to WAV conversion
+        function bufferToWave(buffer) {
+            const length = buffer.length * buffer.numberOfChannels * 2 + 44;
+            const arrayBuffer = new ArrayBuffer(length);
+            const view = new DataView(arrayBuffer);
+            const channels = [];
+            let offset = 0;
+            let pos = 0;
+
+            // Write WAV header
+            setUint32(0x46464952); // "RIFF"
+            setUint32(length - 8); // file length - 8
+            setUint32(0x45564157); // "WAVE"
+            setUint32(0x20746d66); // "fmt " chunk
+            setUint32(16); // length = 16
+            setUint16(1); // PCM (uncompressed)
+            setUint16(buffer.numberOfChannels);
+            setUint32(buffer.sampleRate);
+            setUint32(buffer.sampleRate * 2 * buffer.numberOfChannels);
+            setUint16(buffer.numberOfChannels * 2);
+            setUint16(16);
+            setUint32(0x61746164); // "data" - chunk
+            setUint32(length - pos - 4);
+
+            // Write interleaved data
+            for (let i = 0; i < buffer.numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            while (pos < length) {
+                for (let i = 0; i < buffer.numberOfChannels; i++) {
+                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+
+            return arrayBuffer;
+
+            function setUint16(data) {
+                view.setUint16(pos, data, true);
+                pos += 2;
+            }
+
+            function setUint32(data) {
+                view.setUint32(pos, data, true);
+                pos += 4;
+            }
+        }
+
+        // Waveform visualization
+        function drawWaveform() {
+            if (!audioBuffer) return;
+            
+            const canvas = document.getElementById('waveform');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+            
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+            
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / width);
+            const amp = height / 2;
+            
+            ctx.strokeStyle = '#00d4ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < width; i++) {
+                const min = 1.0;
+                const max = -1.0;
+                
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                
+                ctx.lineTo(i, (1 + min) * amp);
+            }
+            
+            ctx.stroke();
+            ctx.beginPath();
+            
+            for (let i = 0; i < width; i++) {
+                const min = 1.0;
+                const max = -1.0;
+                
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                
+                ctx.lineTo(i, (1 + max) * amp);
+            }
+            
+            ctx.stroke();
+        }
+
+        function clearWaveform() {
+            const canvas = document.getElementById('waveform');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        // Initialize volume
+        gainNode.gain.value = 0.7;</script></body></html>

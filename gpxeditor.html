@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPX Editor - UPPER Office</title>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet GPX Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+    <!-- Leaflet Draw -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- FileSaver.js for exporting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Chart.js for elevation profile -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-light: #f1f5f9;
+            --text-muted: #cbd5e1;
+            --border-dark: #475569;
+            --radius: 0.5rem;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-dark);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-dark);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: var(--bg-tertiary);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Map Controls */
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-light);
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-success:hover {
+            background: #0da271;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            color: var(--text-light);
+            border: 2px solid var(--border-dark);
+        }
+
+        .btn-icon:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.625rem;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-dark);
+            border-radius: calc(var(--radius) - 2px);
+            color: var(--text-light);
+            font-size: 0.875rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.625rem;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-dark);
+            border-radius: calc(var(--radius) - 2px);
+            color: var(--text-light);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        /* Track List */
+        .track-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .track-item:hover {
+            background: #475569;
+        }
+
+        .track-item.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .track-icon {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .track-info {
+            flex: 1;
+        }
+
+        .track-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .track-stats {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Waypoint List */
+        .waypoint-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+
+        .waypoint-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            background: var(--bg-tertiary);
+            border-radius: calc(var(--radius) - 2px);
+            margin-bottom: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .waypoint-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        /* Elevation Profile */
+        .elevation-profile {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .elevation-chart {
+            width: 100%;
+            height: 150px;
+            margin-top: 1rem;
+        }
+
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--bg-tertiary);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-dark);
+            z-index: 1000;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        /* Custom Checkbox */
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+
+        .custom-checkbox input {
+            display: none;
+        }
+
+        .custom-checkbox .checkmark {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-dark);
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .custom-checkbox input:checked + .checkmark {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .custom-checkbox input:checked + .checkmark::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+        }
+
+        /* Color Picker */
+        .color-picker {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-input {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+                border-right: none;
+                border-bottom: 1px solid var(--border-dark);
+            }
+            
+            .map-controls {
+                flex-direction: row;
+                top: auto;
+                bottom: 3rem;
+                right: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Custom Leaflet Styles */
+        .leaflet-control-attribution {
+            background: rgba(0,0,0,0.7) !important;
+            color: var(--text-muted) !important;
+            font-size: 0.75rem !important;
+        }
+
+        .leaflet-popup-content {
+            font-family: inherit !important;
+        }
+
+        .elevation-control {
+            background: var(--bg-secondary) !important;
+            color: var(--text-light) !important;
+            border: 2px solid var(--border-dark) !important;
+            border-radius: var(--radius) !important;
+            padding: 0.5rem !important;
+        }
+
+        /* GPX Track Colors */
+        .gpx-track {
+            stroke-width: 4;
+            stroke-linecap: round;
+            fill: none;
+        }
+
+        .gpx-track-primary {
+            stroke: var(--primary);
+        }
+
+        .gpx-track-success {
+            stroke: var(--success);
+        }
+
+        .gpx-track-warning {
+            stroke: var(--warning);
+        }
+
+        .gpx-track-danger {
+            stroke: var(--danger);
+        }
+
+        .gpx-track-accent {
+            stroke: var(--accent);
+        }
+
+        /* Waypoint Icons */
+        .waypoint-icon {
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        /* Layer Control */
+        .leaflet-control-layers {
+            background: var(--bg-secondary) !important;
+            color: var(--text-light) !important;
+            border: 2px solid var(--border-dark) !important;
+            border-radius: var(--radius) !important;
+        }
+
+        .leaflet-control-layers label {
+            color: var(--text-light) !important;
+        }
+
+        .leaflet-control-layers-selector {
+            accent-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo"><a href="/">UpperOffice</a>&nbsp;&nbsp;🗺️ GPX Editor</div>
+        <div class="header-controls">
+            <button class="btn btn-secondary" id="cloudLoadBtn">☁️ Load from Cloud</button>
+            <button class="btn btn-success" id="cloudSaveBtn">☁️ Save to Cloud</button>
+            <button class="btn" id="exportBtn">📤 Export GPX</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- File Controls -->
+            <div class="panel">
+                <h3 class="panel-title">📁 File</h3>
+                <div class="toolbar">
+                    <button class="btn btn-secondary btn-sm" id="loadFileBtn">
+                        📂 Load GPX
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="clearBtn">
+                        🗑️ Clear
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="exampleBtn">
+                        🎯 Example
+                    </button>
+                </div>
+            </div>
+
+            <!-- Track Information -->
+            <div class="panel">
+                <h3 class="panel-title">📍 Track Info</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="distance">0 km</div>
+                        <div class="stat-label">Distance</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="elevation">0 m</div>
+                        <div class="stat-label">Elevation Gain</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="points">0</div>
+                        <div class="stat-label">Points</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="duration">0h</div>
+                        <div class="stat-label">Duration</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Track Settings -->
+            <div class="panel">
+                <h3 class="panel-title">⚙️ Track Settings</h3>
+                <div class="form-group">
+                    <label class="form-label">Track Name</label>
+                    <input type="text" class="form-input" id="trackName" value="My Track">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Track Color</label>
+                    <div class="color-picker">
+                        <input type="color" class="color-input" id="trackColor" value="#6366f1">
+                        <select class="form-select" id="colorPreset">
+                            <option value="#6366f1">Primary</option>
+                            <option value="#10b981">Green</option>
+                            <option value="#f59e0b">Orange</option>
+                            <option value="#ef4444">Red</option>
+                            <option value="#8b5cf6">Purple</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Track Width</label>
+                    <input type="range" class="form-input" id="trackWidth" min="1" max="10" value="4">
+                </div>
+                <div class="custom-checkbox">
+                    <input type="checkbox" id="showElevation" checked>
+                    <span class="checkmark"></span>
+                    <span>Show Elevation Profile</span>
+                </div>
+            </div>
+
+            <!-- Elevation Profile -->
+            <div class="panel" id="elevationPanel">
+                <h3 class="panel-title">📈 Elevation Profile</h3>
+                <div class="elevation-chart">
+                    <canvas id="elevationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <button class="btn-icon" id="zoomInBtn" title="Zoom In">➕</button>
+                <button class="btn-icon" id="zoomOutBtn" title="Zoom Out">➖</button>
+                <button class="btn-icon" id="locateBtn" title="Locate Me">📍</button>
+                <button class="btn-icon" id="drawTrackBtn" title="Draw Track">✏️</button>
+                <button class="btn-icon" id="addWaypointBtn" title="Add Waypoint">📍</button>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div>Coordinates: <span id="coordinates">0, 0</span></div>
+                <div>Zoom: <span id="zoomLevel">10</span></div>
+                <div>Scale: <span id="mapScale">1:100000</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Input (hidden) -->
+    <input type="file" id="fileInput" accept=".gpx,.xml" style="display: none;">
+
+    <!-- Modals -->
+    <div class="modal" id="cloudModal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">☁️ Cloud Storage</h3>
+                <button class="btn-icon" id="closeCloudModal">✕</button>
+            </div>
+            
+            <div id="cloudFilesGrid" style="max-height: 400px; overflow-y: auto; margin: 1.5rem 0;"></div>
+            
+            <div id="cloudStatus" style="text-align: center; color: var(--text-muted); margin: 1rem 0;"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="waypointModal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">📍 Edit Waypoint</h3>
+                <button class="btn-icon" id="closeWaypointModal">✕</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-input" id="waypointName" value="Waypoint">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-input" id="waypointDesc" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Type</label>
+                <select class="form-select" id="waypointType">
+                    <option value="flag">📍 Flag</option>
+                    <option value="pin">📌 Pin</option>
+                    <option value="circle">⭕ Circle</option>
+                    <option value="star">⭐ Star</option>
+                    <option value="home">🏠 Home</option>
+                    <option value="warning">⚠️ Warning</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Color</label>
+                <input type="color" class="color-input" id="waypointColor" value="#ef4444">
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-danger" id="deleteWaypointBtn">Delete</button>
+                <button class="btn" id="saveWaypointBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+        <div>Loading GPX data...</div>
+    </div>
+
+    <script>
+        class GPXEditor {
+            constructor() {
+                this.map = null;
+                this.gpxLayer = null;
+                this.drawControl = null;
+                this.currentTrack = null;
+                this.waypoints = [];
+                this.elevationChart = null;
+                this.trackColor = '#6366f1';
+                this.trackWidth = 4;
+                this.currentWaypoint = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.initMap();
+                this.initChart();
+                this.bindEvents();
+                this.loadDefaultLocation();
+            }
+            
+            initMap() {
+                // Initialize map
+                this.map = L.map('map', {
+                    center: [49.7438, 15.3386], // Czech Republic center
+                    zoom: 10,
+                    zoomControl: false
+                });
+                
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19
+                }).addTo(this.map);
+                
+                // Add satellite layer
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '© <a href="https://www.esri.com/">Esri</a>',
+                    maxZoom: 19
+                }).addTo(this.map);
+                
+                // Add control layers
+                L.control.layers({
+                    'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                    'Satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
+                    'Topographic': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png')
+                }).addTo(this.map);
+                
+                // Add scale control
+                L.control.scale({imperial: false}).addTo(this.map);
+                
+                // Update coordinates on mouse move
+                this.map.on('mousemove', (e) => {
+                    const lat = e.latlng.lat.toFixed(6);
+                    const lng = e.latlng.lng.toFixed(6);
+                    document.getElementById('coordinates').textContent = `${lat}, ${lng}`;
+                });
+                
+                // Update zoom level
+                this.map.on('zoomend', () => {
+                    document.getElementById('zoomLevel').textContent = this.map.getZoom();
+                    this.updateMapScale();
+                });
+                
+                // Initialize map scale
+                this.updateMapScale();
+            }
+            
+            updateMapScale() {
+                const zoom = this.map.getZoom();
+                const scale = Math.round(591657550 / Math.pow(2, zoom));
+                document.getElementById('mapScale').textContent = `1:${scale.toLocaleString()}`;
+            }
+            
+            initChart() {
+                const ctx = document.getElementById('elevationChart').getContext('2d');
+                this.elevationChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Elevation (m)',
+                            data: [],
+                            borderColor: this.trackColor,
+                            backgroundColor: this.trackColor + '20',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `Elevation: ${context.parsed.y}m`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Distance (km)'
+                                },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Elevation (m)'
+                                },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            bindEvents() {
+                // File operations
+                document.getElementById('loadFileBtn').addEventListener('click', () => {
+                    document.getElementById('fileInput').click();
+                });
+                
+                document.getElementById('fileInput').addEventListener('change', (e) => {
+                    this.loadGPXFile(e.target.files[0]);
+                });
+                
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    if (confirm('Clear all tracks and waypoints?')) {
+                        this.clearMap();
+                    }
+                });
+                
+                document.getElementById('exampleBtn').addEventListener('click', () => {
+                    this.loadExampleTrack();
+                });
+                
+                // Map controls
+                document.getElementById('zoomInBtn').addEventListener('click', () => {
+                    this.map.zoomIn();
+                });
+                
+                document.getElementById('zoomOutBtn').addEventListener('click', () => {
+                    this.map.zoomOut();
+                });
+                
+                document.getElementById('locateBtn').addEventListener('click', () => {
+                    this.locateUser();
+                });
+                
+                document.getElementById('drawTrackBtn').addEventListener('click', () => {
+                    this.startDrawing();
+                });
+                
+                document.getElementById('addWaypointBtn').addEventListener('click', () => {
+                    this.addWaypointAtCenter();
+                });
+                
+                // Track settings
+                document.getElementById('trackColor').addEventListener('change', (e) => {
+                    this.trackColor = e.target.value;
+                    this.updateTrackStyle();
+                });
+                
+                document.getElementById('colorPreset').addEventListener('change', (e) => {
+                    this.trackColor = e.target.value;
+                    document.getElementById('trackColor').value = this.trackColor;
+                    this.updateTrackStyle();
+                });
+                
+                document.getElementById('trackWidth').addEventListener('input', (e) => {
+                    this.trackWidth = parseInt(e.target.value);
+                    this.updateTrackStyle();
+                });
+                
+                document.getElementById('showElevation').addEventListener('change', (e) => {
+                    document.getElementById('elevationPanel').style.display = 
+                        e.target.checked ? 'block' : 'none';
+                });
+                
+                // Export
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.exportGPX();
+                });
+                
+                // Cloud operations
+                document.getElementById('cloudLoadBtn').addEventListener('click', () => {
+                    this.showCloudModal();
+                });
+                
+                document.getElementById('cloudSaveBtn').addEventListener('click', () => {
+                    this.saveToCloud();
+                });
+                
+                document.getElementById('closeCloudModal').addEventListener('click', () => {
+                    this.hideCloudModal();
+                });
+                
+                // Waypoint modal
+                document.getElementById('closeWaypointModal').addEventListener('click', () => {
+                    this.hideWaypointModal();
+                });
+                
+                document.getElementById('saveWaypointBtn').addEventListener('click', () => {
+                    this.saveWaypoint();
+                });
+                
+                document.getElementById('deleteWaypointBtn').addEventListener('click', () => {
+                    this.deleteWaypoint();
+                });
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+O to open file
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                        e.preventDefault();
+                        document.getElementById('fileInput').click();
+                    }
+                    
+                    // Ctrl+S to save
+                    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                        e.preventDefault();
+                        this.exportGPX();
+                    }
+                    
+                    // Escape to stop drawing
+                    if (e.key === 'Escape' && this.drawControl) {
+                        this.stopDrawing();
+                    }
+                    
+                    // Delete key for selected waypoints
+                    if (e.key === 'Delete' && this.currentWaypoint) {
+                        this.deleteWaypoint();
+                    }
+                });
+            }
+            
+            loadDefaultLocation() {
+                // Try to get user location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+                            this.map.setView([latitude, longitude], 13);
+                        },
+                        (error) => {
+                            console.log('Location access denied, using default view');
+                        }
+                    );
+                }
+            }
+            
+            locateUser() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+                            this.map.setView([latitude, longitude], 15);
+                            
+                            // Add marker at user location
+                            L.marker([latitude, longitude], {
+                                icon: L.divIcon({
+                                    className: 'waypoint-icon',
+                                    html: '📍',
+                                    iconSize: [30, 30]
+                                })
+                            })
+                            .addTo(this.map)
+                            .bindPopup('Your Location')
+                            .openPopup();
+                        },
+                        (error) => {
+                            alert('Unable to get your location. Please check permissions.');
+                        }
+                    );
+                } else {
+                    alert('Geolocation is not supported by your browser.');
+                }
+            }
+            
+            async loadGPXFile(file) {
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.showLoading(true);
+                    setTimeout(() => {
+                        this.parseGPX(e.target.result, file.name);
+                        this.showLoading(false);
+                    }, 500);
+                };
+                reader.onerror = () => {
+                    alert('Error reading file');
+                    this.showLoading(false);
+                };
+                reader.readAsText(file);
+            }
+            
+            parseGPX(gpxContent, fileName = 'track') {
+                // Clear existing layers
+                if (this.gpxLayer) {
+                    this.map.removeLayer(this.gpxLayer);
+                }
+                this.clearWaypoints();
+                
+                // Parse GPX
+                this.gpxLayer = new L.GPX(gpxContent, {
+                    async: true,
+                    marker_options: {
+                        startIconUrl: null,
+                        endIconUrl: null,
+                        shadowUrl: null,
+                        icon: L.divIcon({
+                            className: 'waypoint-icon',
+                            html: '📍',
+                            iconSize: [24, 24]
+                        })
+                    },
+                    polyline_options: {
+                        color: this.trackColor,
+                        weight: this.trackWidth,
+                        opacity: 0.8,
+                        lineCap: 'round',
+                        className: 'gpx-track gpx-track-primary'
+                    },
+                    gpx_options: {
+                        parseElements: ['track', 'route', 'waypoint']
+                    }
+                });
+                
+                this.gpxLayer.on('loaded', (e) => {
+                    const track = e.target;
+                    this.map.fitBounds(track.getBounds());
+                    
+                    // Update stats
+                    this.updateTrackStats(track);
+                    
+                    // Set track name
+                    document.getElementById('trackName').value = 
+                        track.get_name() || fileName.replace('.gpx', '');
+                    
+                    // Extract elevation data for chart
+                    if (track.get_elevation_data) {
+                        const elevationData = track.get_elevation_data();
+                        this.updateElevationChart(elevationData);
+                    }
+                    
+                    // Store track reference
+                    this.currentTrack = track;
+                });
+                
+                this.gpxLayer.addTo(this.map);
+            }
+            
+            updateTrackStats(track) {
+                // Distance
+                const distance = track.get_distance() / 1000; // Convert to km
+                document.getElementById('distance').textContent = `${distance.toFixed(2)} km`;
+                
+                // Elevation gain
+                const elevation = track.get_elevation_gain() || 0;
+                document.getElementById('elevation').textContent = `${elevation.toFixed(0)} m`;
+                
+                // Number of points
+                const points = track.get_points_count() || 0;
+                document.getElementById('points').textContent = points;
+                
+                // Duration
+                const duration = track.get_duration() || 0;
+                if (duration > 0) {
+                    const hours = Math.floor(duration / 3600);
+                    const minutes = Math.floor((duration % 3600) / 60);
+                    document.getElementById('duration').textContent = 
+                        hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                } else {
+                    document.getElementById('duration').textContent = '--';
+                }
+            }
+            
+            updateElevationChart(elevationData) {
+                if (!elevationData || elevationData.length === 0) return;
+                
+                const distances = elevationData.map(point => point[0] / 1000); // Convert to km
+                const elevations = elevationData.map(point => point[1]);
+                
+                this.elevationChart.data.labels = distances.map(d => d.toFixed(1));
+                this.elevationChart.data.datasets[0].data = elevations;
+                this.elevationChart.data.datasets[0].borderColor = this.trackColor;
+                this.elevationChart.data.datasets[0].backgroundColor = this.trackColor + '20';
+                this.elevationChart.update();
+            }
+            
+            updateTrackStyle() {
+                if (this.gpxLayer && this.gpxLayer.getLayers) {
+                    const layers = this.gpxLayer.getLayers();
+                    layers.forEach(layer => {
+                        if (layer instanceof L.Polyline) {
+                            layer.setStyle({
+                                color: this.trackColor,
+                                weight: this.trackWidth,
+                                opacity: 0.8
+                            });
+                        }
+                    });
+                }
+                
+                // Update chart color
+                if (this.elevationChart) {
+                    this.elevationChart.data.datasets[0].borderColor = this.trackColor;
+                    this.elevationChart.data.datasets[0].backgroundColor = this.trackColor + '20';
+                    this.elevationChart.update();
+                }
+            }
+            
+            startDrawing() {
+                if (this.drawControl) {
+                    this.stopDrawing();
+                    return;
+                }
+                
+                // Initialize draw control
+                this.drawControl = new L.Control.Draw({
+                    draw: {
+                        polyline: {
+                            shapeOptions: {
+                                color: this.trackColor,
+                                weight: this.trackWidth,
+                                opacity: 0.8
+                            },
+                            metric: true,
+                            showLength: true
+                        },
+                        polygon: false,
+                        rectangle: false,
+                        circle: false,
+                        marker: {
+                            icon: L.divIcon({
+                                className: 'waypoint-icon',
+                                html: '📍',
+                                iconSize: [24, 24]
+                            })
+                        }
+                    },
+                    edit: {
+                        featureGroup: new L.FeatureGroup()
+                    }
+                });
+                
+                this.map.addControl(this.drawControl);
+                
+                // Handle draw events
+                this.map.on(L.Draw.Event.CREATED, (e) => {
+                    const layer = e.layer;
+                    
+                    if (e.layerType === 'polyline') {
+                        this.handleDrawnTrack(layer);
+                    } else if (e.layerType === 'marker') {
+                        this.handleDrawnWaypoint(layer);
+                    }
+                });
+                
+                alert('Drawing mode activated. Click on map to start drawing a track. Press ESC to cancel.');
+            }
+            
+            stopDrawing() {
+                if (this.drawControl) {
+                    this.map.removeControl(this.drawControl);
+                    this.drawControl = null;
+                    this.map.off(L.Draw.Event.CREATED);
+                    alert('Drawing mode deactivated.');
+                }
+            }
+            
+            handleDrawnTrack(polyline) {
+                // Convert drawn polyline to GPX track
+                const latlngs = polyline.getLatLngs();
+                
+                // Create GPX content from coordinates
+                const gpxContent = this.createGPXFromCoords(latlngs, 'Drawn Track');
+                
+                // Parse and display the track
+                this.parseGPX(gpxContent, 'Drawn Track');
+                
+                // Remove the drawn polyline
+                polyline.remove();
+            }
+            
+            handleDrawnWaypoint(marker) {
+                const latlng = marker.getLatLng();
+                this.addWaypoint(latlng.lat, latlng.lng, 'New Waypoint');
+                marker.remove();
+            }
+            
+            addWaypointAtCenter() {
+                const center = this.map.getCenter();
+                this.addWaypoint(center.lat, center.lng, 'Waypoint');
+            }
+            
+            addWaypoint(lat, lng, name = 'Waypoint') {
+                const waypoint = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'waypoint-icon',
+                        html: '📍',
+                        iconSize: [24, 24]
+                    }),
+                    draggable: true
+                }).addTo(this.map);
+                
+                waypoint.bindPopup(`
+                    <strong>${name}</strong><br>
+                    Lat: ${lat.toFixed(6)}<br>
+                    Lng: ${lng.toFixed(6)}<br>
+                    <button onclick="window.gpxEditor.editWaypoint(${lat}, ${lng})">Edit</button>
+                `);
+                
+                // Add to waypoints array
+                this.waypoints.push({
+                    marker: waypoint,
+                    name: name,
+                    lat: lat,
+                    lng: lng,
+                    description: ''
+                });
+                
+                // Add drag event
+                waypoint.on('dragend', (e) => {
+                    const newLatLng = e.target.getLatLng();
+                    const wp = this.waypoints.find(w => w.marker === waypoint);
+                    if (wp) {
+                        wp.lat = newLatLng.lat;
+                        wp.lng = newLatLng.lng;
+                    }
+                });
+                
+                // Add click event for editing
+                waypoint.on('click', () => {
+                    this.editWaypoint(lat, lng);
+                });
+            }
+            
+            editWaypoint(lat, lng) {
+                const waypoint = this.waypoints.find(w => 
+                    Math.abs(w.lat - lat) < 0.0001 && Math.abs(w.lng - lng) < 0.0001
+                );
+                
+                if (waypoint) {
+                    this.currentWaypoint = waypoint;
+                    
+                    // Fill modal
+                    document.getElementById('waypointName').value = waypoint.name;
+                    document.getElementById('waypointDesc').value = waypoint.description || '';
+                    document.getElementById('waypointColor').value = waypoint.color || '#ef4444';
+                    
+                    // Show modal
+                    document.getElementById('waypointModal').classList.add('show');
+                }
+            }
+            
+            saveWaypoint() {
+                if (!this.currentWaypoint) return;
+                
+                this.currentWaypoint.name = document.getElementById('waypointName').value;
+                this.currentWaypoint.description = document.getElementById('waypointDesc').value;
+                this.currentWaypoint.color = document.getElementById('waypointColor').value;
+                
+                // Update marker
+                const type = document.getElementById('waypointType').value;
+                const icons = {
+                    flag: '📍',
+                    pin: '📌',
+                    circle: '⭕',
+                    star: '⭐',
+                    home: '🏠',
+                    warning: '⚠️'
+                };
+                
+                this.currentWaypoint.marker.setIcon(L.divIcon({
+                    className: 'waypoint-icon',
+                    html: icons[type] || '📍',
+                    iconSize: [24, 24]
+                }));
+                
+                // Update popup
+                this.currentWaypoint.marker.setPopupContent(`
+                    <strong>${this.currentWaypoint.name}</strong><br>
+                    ${this.currentWaypoint.description ? this.currentWaypoint.description + '<br>' : ''}
+                    Lat: ${this.currentWaypoint.lat.toFixed(6)}<br>
+                    Lng: ${this.currentWaypoint.lng.toFixed(6)}<br>
+                    <button onclick="window.gpxEditor.editWaypoint(${this.currentWaypoint.lat}, ${this.currentWaypoint.lng})">Edit</button>
+                `);
+                
+                this.hideWaypointModal();
+            }
+            
+            deleteWaypoint() {
+                if (!this.currentWaypoint) return;
+                
+                if (confirm('Delete this waypoint?')) {
+                    // Remove marker from map
+                    this.currentWaypoint.marker.remove();
+                    
+                    // Remove from array
+                    const index = this.waypoints.indexOf(this.currentWaypoint);
+                    if (index > -1) {
+                        this.waypoints.splice(index, 1);
+                    }
+                    
+                    this.hideWaypointModal();
+                }
+            }
+            
+            hideWaypointModal() {
+                document.getElementById('waypointModal').classList.remove('show');
+                this.currentWaypoint = null;
+            }
+            
+            clearWaypoints() {
+                this.waypoints.forEach(wp => wp.marker.remove());
+                this.waypoints = [];
+            }
+            
+            clearMap() {
+                if (this.gpxLayer) {
+                    this.map.removeLayer(this.gpxLayer);
+                    this.gpxLayer = null;
+                }
+                this.clearWaypoints();
+                this.currentTrack = null;
+                
+                // Reset stats
+                document.getElementById('distance').textContent = '0 km';
+                document.getElementById('elevation').textContent = '0 m';
+                document.getElementById('points').textContent = '0';
+                document.getElementById('duration').textContent = '0h';
+                
+                // Reset chart
+                this.elevationChart.data.labels = [];
+                this.elevationChart.data.datasets[0].data = [];
+                this.elevationChart.update();
+            }
+            
+            loadExampleTrack() {
+                // Example GPX track around Prague
+                const exampleGPX = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="UpperOffice GPX Editor" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Prague Castle Walk</name>
+    <desc>Beautiful walk around Prague Castle area</desc>
+  </metadata>
+  <trk>
+    <name>Prague Castle Circuit</name>
+    <trkseg>
+      <trkpt lat="50.0900" lon="14.4000">
+        <ele>202</ele>
+      </trkpt>
+      <trkpt lat="50.0915" lon="14.4010">
+        <ele>205</ele>
+      </trkpt>
+      <trkpt lat="50.0925" lon="14.4025">
+        <ele>210</ele>
+      </trkpt>
+      <trkpt lat="50.0930" lon="14.4040">
+        <ele>215</ele>
+      </trkpt>
+      <trkpt lat="50.0935" lon="14.4055">
+        <ele>220</ele>
+      </trkpt>
+      <trkpt lat="50.0940" lon="14.4070">
+        <ele>225</ele>
+      </trkpt>
+      <trkpt lat="50.0945" lon="14.4085">
+        <ele>230</ele>
+      </trkpt>
+      <trkpt lat="50.0950" lon="14.4100">
+        <ele>235</ele>
+      </trkpt>
+      <trkpt lat="50.0955" lon="14.4115">
+        <ele>240</ele>
+      </trkpt>
+      <trkpt lat="50.0960" lon="14.4130">
+        <ele>245</ele>
+      </trkpt>
+      <trkpt lat="50.0965" lon="14.4145">
+        <ele>250</ele>
+      </trkpt>
+      <trkpt lat="50.0970" lon="14.4160">
+        <ele>255</ele>
+      </trkpt>
+      <trkpt lat="50.0975" lon="14.4175">
+        <ele>260</ele>
+      </trkpt>
+      <trkpt lat="50.0980" lon="14.4190">
+        <ele>265</ele>
+      </trkpt>
+      <trkpt lat="50.0985" lon="14.4205">
+        <ele>270</ele>
+      </trkpt>
+      <trkpt lat="50.0990" lon="14.4220">
+        <ele>275</ele>
+      </trkpt>
+      <trkpt lat="50.0995" lon="14.4235">
+        <ele>280</ele>
+      </trkpt>
+      <trkpt lat="50.1000" lon="14.4250">
+        <ele>285</ele>
+      </trkpt>
+    </trkseg>
+  </trk>
+  <wpt lat="50.0900" lon="14.4000">
+    <name>Start</name>
+    <desc>Starting point at Prague Castle entrance</desc>
+  </wpt>
+  <wpt lat="50.1000" lon="14.4250">
+    <name>End</name>
+    <desc>End point at Strahov Monastery</desc>
+  </wpt>
+</gpx>`;
+                
+                this.parseGPX(exampleGPX, 'Prague Castle Walk');
+            }
+            
+            createGPXFromCoords(coords, name) {
+                let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="UpperOffice GPX Editor" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>${name}</name>
+    <desc>Created with UpperOffice GPX Editor</desc>
+  </metadata>
+  <trk>
+    <name>${name}</name>
+    <trkseg>`;
+                
+                coords.forEach(coord => {
+                    gpx += `
+      <trkpt lat="${coord.lat.toFixed(6)}" lon="${coord.lng.toFixed(6)}">
+        <ele>0</ele>
+      </trkpt>`;
+                });
+                
+                gpx += `
+    </trkseg>
+  </trk>`;
+                
+                // Add waypoints
+                this.waypoints.forEach(wp => {
+                    gpx += `
+  <wpt lat="${wp.lat.toFixed(6)}" lon="${wp.lng.toFixed(6)}">
+    <name>${wp.name}</name>
+    <desc>${wp.description || ''}</desc>
+  </wpt>`;
+                });
+                
+                gpx += `
+</gpx>`;
+                
+                return gpx;
+            }
+            
+            exportGPX() {
+                if (!this.currentTrack && this.waypoints.length === 0) {
+                    alert('No track or waypoints to export');
+                    return;
+                }
+                
+                let gpxContent;
+                
+                if (this.currentTrack) {
+                    // Export existing GPX track
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(this.currentTrack.toXML(), 'text/xml');
+                    gpxContent = new XMLSerializer().serializeToString(xmlDoc);
+                } else {
+                    // Create GPX from waypoints only
+                    gpxContent = this.createGPXFromCoords([], 'Waypoints');
+                }
+                
+                // Create blob and download
+                const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+                const filename = document.getElementById('trackName').value || 'track';
+                saveAs(blob, `${filename}.gpx`);
+                
+                showStatus('GPX file exported successfully!', 'success');
+            }
+            
+            async saveToCloud() {
+                if (!localStorage.token) {
+                    alert('Please login to save to cloud');
+                    return;
+                }
+                
+                if (!this.currentTrack && this.waypoints.length === 0) {
+                    alert('No track or waypoints to save');
+                    return;
+                }
+                
+                const trackName = document.getElementById('trackName').value || 'gpx_track';
+                let gpxContent;
+                
+                if (this.currentTrack) {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(this.currentTrack.toXML(), 'text/xml');
+                    gpxContent = new XMLSerializer().serializeToString(xmlDoc);
+                } else {
+                    gpxContent = this.createGPXFromCoords([], trackName);
+                }
+                
+                const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+                const file = new File([blob], `${trackName}.gpx`, { type: 'application/gpx+xml' });
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch('/api/cloud/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': localStorage.token
+                        },
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert('GPX track saved to cloud successfully!');
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Error uploading file: ' + error.message);
+                }
+            }
+            
+            async showCloudModal() {
+                if (!localStorage.token) {
+                    alert('Please login to access cloud files');
+                    return;
+                }
+                
+                document.getElementById('cloudModal').classList.add('show');
+                await this.loadCloudFiles();
+            }
+            
+            hideCloudModal() {
+                document.getElementById('cloudModal').classList.remove('show');
+            }
+            
+            async loadCloudFiles() {
+                const statusEl = document.getElementById('cloudStatus');
+                const gridEl = document.getElementById('cloudFilesGrid');
+                
+                statusEl.innerHTML = '<div>Loading GPX files...</div>';
+                
+                try {
+                    const response = await fetch('/api/cloud/files', {
+                        headers: {
+                            'Authorization': localStorage.token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const files = await response.json();
+                        const gpxFiles = files.filter(file => 
+                            file.filename.endsWith('.gpx') || file.type === 'document'
+                        );
+                        
+                        if (gpxFiles.length === 0) {
+                            gridEl.innerHTML = `
+                                <div style="text-align: center; padding: 2rem;">
+                                    <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
+                                    <h4 style="margin-bottom: 8px;">No GPX files found</h4>
+                                    <p style="color: var(--text-muted); font-size: 14px;">Save some GPX tracks to your cloud storage first.</p>
+                                </div>
+                            `;
+                            return;
+                        }
+                        
+                        gridEl.innerHTML = '';
+                        statusEl.textContent = `Found ${gpxFiles.length} GPX files`;
+                        
+                        gpxFiles.forEach(file => {
+                            const card = document.createElement('div');
+                            card.style.cssText = `
+                                background: linear-gradient(135deg, var(--primary), var(--accent));
+                                border-radius: 12px;
+                                padding: 1.5rem;
+                                margin-bottom: 1rem;
+                                cursor: pointer;
+                                transition: all 0.3s;
+                                color: white;
+                                border: 2px solid transparent;
+                            `;
+                            
+                            card.innerHTML = `
+                                <div style="font-size: 2rem; margin-bottom: 1rem;">🗺️</div>
+                                <div style="font-weight: 600; margin-bottom: 0.5rem; line-height: 1.3;">
+                                    ${file.filename}
+                                </div>
+                                <div style="font-size: 0.875rem; opacity: 0.9;">
+                                    ${formatFileSize(file.size)}
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">
+                                    ${new Date(file.upload_date).toLocaleDateString()}
+                                </div>
+                            `;
+                            
+                            card.addEventListener('click', async () => {
+                                statusEl.innerHTML = `<div>Loading "${file.filename}"...</div>`;
+                                await this.loadFromCloud(file.id);
+                                this.hideCloudModal();
+                            });
+                            
+                            card.addEventListener('mouseenter', () => {
+                                card.style.transform = 'translateY(-4px)';
+                                card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                                card.style.borderColor = 'white';
+                            });
+                            
+                            card.addEventListener('mouseleave', () => {
+                                card.style.transform = 'translateY(0)';
+                                card.style.boxShadow = 'none';
+                                card.style.borderColor = 'transparent';
+                            });
+                            
+                            gridEl.appendChild(card);
+                        });
+                    } else {
+                        statusEl.innerHTML = '<div style="color: var(--danger);">Error loading cloud files</div>';
+                    }
+                } catch (error) {
+                    statusEl.innerHTML = `<div style="color: var(--danger);">Error: ${error.message}</div>`;
+                }
+            }
+            
+            async loadFromCloud(fileId) {
+                try {
+                    const response = await fetch(`/api/cloud/download/${fileId}`, {
+                        headers: {
+                            'Authorization': localStorage.token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const text = await blob.text();
+                        this.parseGPX(text, 'Cloud Track');
+                        alert('GPX track loaded from cloud!');
+                    } else {
+                        alert('Error loading GPX file');
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+            
+            showLoading(show) {
+                document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+            }
+        }
+        
+        // Utility function
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        function showStatus(message, type) {
+            // Create status message element if it doesn't exist
+            let statusEl = document.getElementById('statusMessage');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = 'statusMessage';
+                statusEl.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    right: 20px;
+                    padding: 1rem;
+                    border-radius: var(--radius);
+                    background: ${type === 'success' ? 'var(--success)' : 'var(--danger)'};
+                    color: white;
+                    font-weight: 600;
+                    z-index: 2000;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                document.body.appendChild(statusEl);
+            }
+            
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Initialize editor when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.gpxEditor = new GPXEditor();
+        });
+    </script>
+</body>
+</html>

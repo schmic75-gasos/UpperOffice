@@ -14,6 +14,8 @@
   --input-bg: #4a4a4a;
   --input-border: #5a5a5a;
   --input-focus: #2a5a8c;
+  --danger: #ef4444;
+  --success: #10b981;
 }
 
 * {

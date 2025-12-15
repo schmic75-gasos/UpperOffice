@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Prezentační editor</title>
+<link rel="stylesheet" href="untiteld-1.CSS">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #1e1e1e;
+    color: white;
+  }
+  
+  .presentation-container {
+    display: flex;
+    height: calc(100vh - 80px);
+  }
+  
+  .slides-panel {
+    width: 280px;
+    background: #2d2d2d;
+    border-right: 2px solid #444;
+    overflow-y: auto;
+    padding: 10px;
+  }
+  
+  .slide-thumbnail {
+    background: #3d3d3d;
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-height: 80px;
+    position: relative;
+  }
+  
+  .slide-thumbnail.active {
+    border-color: #4a90e2;
+    background: #2a4d7a;
+  }
+  
+  .slide-thumbnail:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  
+  .editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+  }
+  
+  .slide-editor {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+  }
+  
+  .slide-canvas {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .slide-content {
+    width: 100%;
+    height: 100%;
+    padding: 40px;
+    outline: none;
+    color: black;
+    position: relative;
+  }
+  
+  .toolbar {
+    background: #333;
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    border-bottom: 1px solid #444;
+  }
+  
+  button, select, input {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #4a4a4a;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  button:hover {
+    background: #5a5a5a;
+    transform: translateY(-1px);
+  }
+  
+  button.primary {
+    background: #2a5a8c;
+  }
+  
+  button.primary:hover {
+    background: #1f4060;
+  }
+  
+  button.danger {
+    background: #dc3545;
+  }
+  
+  button.danger:hover {
+    background: #c82333;
+  }
+  
+  .slide-number {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  
+  .element-controls {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    padding: 8px;
+    border-radius: 6px;
+    display: none;
+    gap: 5px;
+  }
+  
+  .slide-element {
+    position: absolute;
+    cursor: move;
+    min-width: 50px;
+    min-height: 20px;
+  }
+  
+  .slide-element.selected {
+    outline: 2px dashed #4a90e2;
+  }
+  
+  .resize-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #4a90e2;
+    border-radius: 50%;
+  }
+  
+  .resize-n { top: -4px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
+  .resize-s { bottom: -4px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+  .resize-e { right: -4px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
+  .resize-w { left: -4px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
+  .resize-ne { top: -4px; right: -4px; cursor: ne-resize; }
+  .resize-nw { top: -4px; left: -4px; cursor: nw-resize; }
+  .resize-se { bottom: -4px; right: -4px; cursor: se-resize; }
+  .resize-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+
+  .modal-content {
+    background: #333;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .cloud-file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .cloud-file-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: white;
+  }
+
+  .cloud-file-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  }
+</style>
+</head>
+<body>
+    <div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
+<header>
+    <a href="index.html" class="logo">UPPER OFFICE</a>
+    <div class="navigation">
+        <nav>
+            <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
+            <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li>
+            <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li>
+            <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li>
+            <li class="nav-item"><a href="cloud.html" class="nav-link">Cloud Storage</a></li>
+            <li class="nav-item login-container">
+                <a href="Login.html" class="nav-link login-link">👨‍🚒</a>
+                <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div>
+            </li>
+        </nav>
+    </div>
+</header>
+
+<div class="toolbar">
+    <button id="newSlide" title="New Slide">➕ New Slide</button>
+    <button id="deleteSlide" title="Delete Slide" class="danger">🗑️ Delete</button>
+    <button id="duplicateSlide" title="Duplicate Slide">📋 Duplicate</button>
+    
+    <select id="slideLayout">
+        <option value="title">Title Slide</option>
+        <option value="content">Content Slide</option>
+        <option value="twoColumn">Two Columns</option>
+        <option value="image">Image Slide</option>
+    </select>
+    
+    <button id="addText" title="Add Text Box">📝 Add Text</button>
+    <button id="addImage" title="Add Image">🖼️ Add Image</button>
+    <button id="addShape" title="Add Shape">⬢ Add Shape</button>
+    
+    <select id="fontFamily">
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Georgia">Georgia</option>
+    </select>
+    
+    <select id="fontSize">
+        <option value="12">12px</option>
+        <option value="16">16px</option>
+        <option value="20">20px</option>
+        <option value="24">24px</option>
+        <option value="32">32px</option>
+        <option value="48">48px</option>
+    </select>
+    
+    <input type="color" id="textColor" value="#000000">
+    <input type="color" id="bgColor" value="#ffffff">
+    
+    <button id="boldBtn" title="Bold"><b>B</b></button>
+    <button id="italicBtn" title="Italic"><i>I</i></button>
+    <button id="underlineBtn" title="Underline"><u>U</u></button>
+    
+    <button id="alignLeft" title="Align Left">⬅️</button>
+    <button id="alignCenter" title="Align Center">↔️</button>
+    <button id="alignRight" title="Align Right">➡️</button>
+    
+    <button id="exportPptx" class="primary">💾 Export PPTX</button>
+    <button id="exportPdf" class="primary">📄 Export PDF</button>
+    <button id="saveToCloud" class="primary">☁️ Save to Cloud</button>
+    <button id="loadFromCloud" class="primary">📂 Load from Cloud</button>
+    <button id="sharePresentation" class="primary">🔗 Share</button>
+</div>
+
+<div class="presentation-container">
+    <div class="slides-panel" id="slidesPanel">
+        <!-- Slides will be generated here -->
+    </div>
+    
+    <div class="editor-area">
+        <div class="slide-editor">
+            <div class="slide-canvas" id="slideCanvas" style="width: 800px; height: 450px;">
+                <div class="slide-content" id="currentSlide" contenteditable="false">
+                    <!-- Current slide content -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+class PresentationEditor {
+    constructor() {
+        this.slides = [];
+        this.currentSlideIndex = 0;
+        this.selectedElement = null;
+        this.isDragging = false;
+        this.dragOffset = { x: 0, y: 0 };
+        
+        this.init();
+    }
+    
+    init() {
+        this.createNewSlide('title');
+        this.bindEvents();
+        this.renderSlidesPanel();
+        this.updateSlideEditor();
+    }
+    
+    createNewSlide(layout = 'title') {
+        const slide = {
+            id: Date.now() + Math.random(),
+            layout: layout,
+            elements: [],
+            background: '#ffffff'
+        };
+        
+        switch(layout) {
+            case 'title':
+                slide.elements.push({
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    content: 'Presentation Title',
+                    style: {
+                        left: '50px',
+                        top: '100px',
+                        width: '700px',
+                        height: '80px',
+                        fontSize: '48px',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        color: '#000000'
+                    }
+                });
+                slide.elements.push({
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    content: 'Subtitle',
+                    style: {
+                        left: '50px',
+                        top: '200px',
+                        width: '700px',
+                        height: '40px',
+                        fontSize: '24px',
+                        textAlign: 'center',
+                        color: '#666666'
+                    }
+                });
+                break;
+                
+            case 'content':
+                slide.elements.push({
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    content: 'Slide Title',
+                    style: {
+                        left: '50px',
+                        top: '50px',
+                        width: '700px',
+                        height: '60px',
+                        fontSize: '36px',
+                        fontWeight: 'bold',
+                        color: '#000000'
+                    }
+                });
+                slide.elements.push({
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    content: '• Point 1\n• Point 2\n• Point 3',
+                    style: {
+                        left: '80px',
+                        top: '130px',
+                        width: '640px',
+                        height: '200px',
+                        fontSize: '24px',
+                        color: '#000000',
+                        lineHeight: '1.5'
+                    }
+                });
+                break;
+                
+            case 'twoColumn':
+                slide.elements.push({
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    content: 'Slide Title',
+                    style: {
+                        left: '50px',
+                        top: '50px',
+                        width: '700px',
+                        height: '60px',
+                        fontSize: '36px',
+                        fontWeight: 'bold',
+                        color: '#000000'
+                    }
+                });
+                slide.elements.push({
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    content: 'Left Column\n• Item 1\n• Item 2',
+                    style: {
+                        left: '50px',
+                        top: '130px',
+                        width: '350px',
+                        height: '250px',
+                        fontSize: '20px',
+                        color: '#000000'
+                    }
+                });
+                slide.elements.push({
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    content: 'Right Column\n• Item A\n• Item B',
+                    style: {
+                        left: '430px',
+                        top: '130px',
+                        width: '350px',
+                        height: '250px',
+                        fontSize: '20px',
+                        color: '#000000'
+                    }
+                });
+                break;
+        }
+        
+        this.slides.push(slide);
+        return slide;
+    }
+    
+    bindEvents() {
+        // Slide management
+        document.getElementById('newSlide').addEventListener('click', () => {
+            const layout = document.getElementById('slideLayout').value;
+            this.createNewSlide(layout);
+            this.currentSlideIndex = this.slides.length - 1;
+            this.renderSlidesPanel();
+            this.updateSlideEditor();
+        });
+        
+        document.getElementById('deleteSlide').addEventListener('click', () => {
+            if (this.slides.length > 1) {
+                this.slides.splice(this.currentSlideIndex, 1);
+                this.currentSlideIndex = Math.max(0, this.currentSlideIndex - 1);
+                this.renderSlidesPanel();
+                this.updateSlideEditor();
+            }
+        });
+        
+        document.getElementById('duplicateSlide').addEventListener('click', () => {
+            const currentSlide = JSON.parse(JSON.stringify(this.slides[this.currentSlideIndex]));
+            currentSlide.id = Date.now() + Math.random();
+            currentSlide.elements = currentSlide.elements.map(el => ({
+                ...el,
+                id: Date.now() + Math.random()
+            }));
+            this.slides.splice(this.currentSlideIndex + 1, 0, currentSlide);
+            this.currentSlideIndex++;
+            this.renderSlidesPanel();
+            this.updateSlideEditor();
+        });
+        
+        // Element creation
+        document.getElementById('addText').addEventListener('click', () => {
+            this.addTextElement();
+        });
+        
+        document.getElementById('addImage').addEventListener('click', () => {
+            this.addImageElement();
+        });
+        
+        // Formatting
+        document.getElementById('boldBtn').addEventListener('click', () => {
+            this.applyFormatting('bold');
+        });
+        
+        document.getElementById('italicBtn').addEventListener('click', () => {
+            this.applyFormatting('italic');
+        });
+        
+        document.getElementById('underlineBtn').addEventListener('click', () => {
+            this.applyFormatting('underline');
+        });
+        
+        // Cloud functionality
+        document.getElementById('saveToCloud').addEventListener('click', () => {
+            this.saveToCloud();
+        });
+        
+        document.getElementById('loadFromCloud').addEventListener('click', () => {
+            this.loadFromCloud();
+        });
+        
+        document.getElementById('sharePresentation').addEventListener('click', () => {
+            this.sharePresentation();
+        });
+        
+        // Export
+        document.getElementById('exportPptx').addEventListener('click', () => {
+            this.exportToPPTX();
+        });
+        
+        document.getElementById('exportPdf').addEventListener('click', () => {
+            this.exportToPDF();
+        });
+    }
+    
+    renderSlidesPanel() {
+        const panel = document.getElementById('slidesPanel');
+        panel.innerHTML = '';
+        
+        this.slides.forEach((slide, index) => {
+            const thumb = document.createElement('div');
+            thumb.className = `slide-thumbnail ${index === this.currentSlideIndex ? 'active' : ''}`;
+            thumb.innerHTML = `
+                <div style="font-size: 12px; margin-bottom: 5px;">Slide ${index + 1}</div>
+                <div style="font-size: 10px; color: #ccc;">${slide.layout}</div>
+            `;
+            
+            thumb.addEventListener('click', () => {
+                this.currentSlideIndex = index;
+                this.renderSlidesPanel();
+                this.updateSlideEditor();
+            });
+            
+            panel.appendChild(thumb);
+        });
+    }
+    
+    updateSlideEditor() {
+        const currentSlide = this.slides[this.currentSlideIndex];
+        const slideContent = document.getElementById('currentSlide');
+        
+        // Clear existing content
+        slideContent.innerHTML = '';
+        
+        // Add elements
+        currentSlide.elements.forEach(element => {
+            const el = this.createElement(element);
+            slideContent.appendChild(el);
+        });
+        
+        // Update background
+        slideContent.style.backgroundColor = currentSlide.background;
+    }
+    
+    createElement(elementData) {
+        const el = document.createElement('div');
+        el.className = 'slide-element';
+        el.dataset.elementId = elementData.id;
+        
+        // Apply styles
+        Object.keys(elementData.style).forEach(prop => {
+            el.style[prop] = elementData.style[prop];
+        });
+        
+        // Set content based on type
+        if (elementData.type === 'text') {
+            el.contentEditable = true;
+            el.innerHTML = elementData.content.replace(/\n/g, '<br>');
+        } else if (elementData.type === 'image') {
+            el.innerHTML = `<img src="${elementData.content}" style="width: 100%; height: 100%; object-fit: contain;">`;
+        }
+        
+        // Add event listeners for selection and dragging
+        el.addEventListener('mousedown', (e) => {
+            this.selectElement(el, elementData.id);
+            this.startDrag(e, el);
+        });
+        
+        return el;
+    }
+    
+    selectElement(element, elementId) {
+        // Deselect previous
+        if (this.selectedElement) {
+            this.selectedElement.classList.remove('selected');
+        }
+        
+        // Select new
+        element.classList.add('selected');
+        this.selectedElement = element;
+        
+        // Show element controls
+        this.showElementControls(element);
+    }
+    
+    showElementControls(element) {
+        // Implementation for resize handles and other controls
+        // Simplified for this example
+    }
+    
+    startDrag(e, element) {
+        this.isDragging = true;
+        const rect = element.getBoundingClientRect();
+        this.dragOffset.x = e.clientX - rect.left;
+        this.dragOffset.y = e.clientY - rect.top;
+        
+        document.addEventListener('mousemove', this.drag.bind(this));
+        document.addEventListener('mouseup', this.stopDrag.bind(this));
+    }
+    
+    drag(e) {
+        if (!this.isDragging || !this.selectedElement) return;
+        
+        const slideRect = document.getElementById('slideCanvas').getBoundingClientRect();
+        const x = e.clientX - slideRect.left - this.dragOffset.x;
+        const y = e.clientY - slideRect.top - this.dragOffset.y;
+        
+        this.selectedElement.style.left = Math.max(0, Math.min(slideRect.width - this.selectedElement.offsetWidth, x)) + 'px';
+        this.selectedElement.style.top = Math.max(0, Math.min(slideRect.height - this.selectedElement.offsetHeight, y)) + 'px';
+    }
+    
+    stopDrag() {
+        this.isDragging = false;
+        document.removeEventListener('mousemove', this.drag.bind(this));
+        document.removeEventListener('mouseup', this.stopDrag.bind(this));
+    }
+    
+    addTextElement() {
+        const currentSlide = this.slides[this.currentSlideIndex];
+        const newElement = {
+            id: Date.now() + Math.random(),
+            type: 'text',
+            content: 'New Text',
+            style: {
+                left: '100px',
+                top: '100px',
+                width: '200px',
+                height: '40px',
+                fontSize: '16px',
+                color: '#000000',
+                backgroundColor: 'transparent',
+                border: 'none'
+            }
+        };
+        
+        currentSlide.elements.push(newElement);
+        this.updateSlideEditor();
+    }
+    
+    addImageElement() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const currentSlide = this.slides[this.currentSlideIndex];
+                    const newElement = {
+                        id: Date.now() + Math.random(),
+                        type: 'image',
+                        content: event.target.result,
+                        style: {
+                            left: '100px',
+                            top: '100px',
+                            width: '200px',
+                            height: '150px'
+                        }
+                    };
+                    
+                    currentSlide.elements.push(newElement);
+                    this.updateSlideEditor();
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
+    
+    applyFormatting(format) {
+        if (!this.selectedElement) return;
+        
+        document.execCommand(format, false, null);
+        
+        // Update the element data
+        const elementId = this.selectedElement.dataset.elementId;
+        const currentSlide = this.slides[this.currentSlideIndex];
+        const element = currentSlide.elements.find(el => el.id == elementId);
+        
+        if (element) {
+            element.content = this.selectedElement.innerHTML;
+        }
+    }
+    
+    async saveToCloud() {
+        if (!localStorage.token) {
+            alert('Please login to save to cloud');
+            return;
+        }
+        
+        const presentationData = {
+            title: `Presentation_${new Date().toISOString().split('T')[0]}`,
+            slides: this.slides,
+            created: new Date().toISOString(),
+            version: '1.0'
+        };
+        
+        const blob = new Blob([JSON.stringify(presentationData)], { 
+            type: 'application/json' 
+        });
+        
+        const file = new File([blob], `${presentationData.title}.upppt`, { 
+            type: 'application/json' 
+        });
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const response = await fetch('/api/cloud/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': localStorage.token
+                },
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert('Presentation saved to cloud successfully!');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error uploading file: ' + error.message);
+        }
+    }
+    
+    async loadFromCloud() {
+        if (!localStorage.token) {
+            alert('Please login to access cloud files');
+            return;
+        }
+        
+        this.showCloudModal();
+    }
+    
+    showCloudModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Load Presentation from Cloud</h2>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                            style="background: none; border: none; font-size: 20px; cursor: pointer; color: white;">✕</button>
+                </div>
+                <div id="cloudPresentationsGrid" class="cloud-file-grid"></div>
+                <div id="cloudStatus" style="text-align: center; color: #ccc;"></div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        this.loadCloudPresentations();
+    }
+    
+    async loadCloudPresentations() {
+        const statusEl = document.getElementById('cloudStatus');
+        const gridEl = document.getElementById('cloudPresentationsGrid');
+        
+        statusEl.textContent = 'Loading presentations...';
+        
+        try {
+            const response = await fetch('/api/cloud/files', {
+                headers: {
+                    'Authorization': localStorage.token
+                }
+            });
+            
+            if (response.ok) {
+                const files = await response.json();
+                const presentationFiles = files.filter(file => 
+                    file.filename.endsWith('.upppt') || file.type === 'document'
+                );
+                
+                if (presentationFiles.length === 0) {
+                    statusEl.innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📁</div>
+                            <h4 style="margin-bottom: 8px;">No presentations found</h4>
+                            <p style="color: #666; font-size: 14px;">Save some presentations to your cloud storage first.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                gridEl.innerHTML = '';
+                statusEl.textContent = `Found ${presentationFiles.length} presentations`;
+                
+                presentationFiles.forEach(file => {
+                    const card = document.createElement('div');
+                    card.className = 'cloud-file-card';
+                    card.innerHTML = `
+                        <div style="font-size: 48px; margin-bottom: 12px;">📊</div>
+                        <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; line-height: 1.3;">
+                            ${file.filename}
+                        </div>
+                        <div style="font-size: 11px; opacity: 0.9;">
+                            ${formatFileSize(file.size)}
+                        </div>
+                        <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">
+                            ${new Date(file.upload_date).toLocaleDateString()}
+                        </div>
+                    `;
+                    
+                    card.addEventListener('click', async () => {
+                        statusEl.innerHTML = `<div style="color: #4CAF50;">🔄 Loading "${file.filename}"...</div>`;
+                        await this.loadPresentationFromCloud(file.id);
+                        modal.remove();
+                    });
+                    
+                    gridEl.appendChild(card);
+                });
+            } else {
+                statusEl.innerHTML = `<div style="color: #f44336;">❌ Error loading cloud files</div>`;
+            }
+        } catch (error) {
+            statusEl.innerHTML = `<div style="color: #f44336;">❌ Error: ${error.message}</div>`;
+        }
+    }
+    
+    async loadPresentationFromCloud(fileId) {
+        try {
+            const response = await fetch(`/api/cloud/download/${fileId}`, {
+                headers: {
+                    'Authorization': localStorage.token
+                }
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const text = await blob.text();
+                
+                try {
+                    const presentationData = JSON.parse(text);
+                    this.slides = presentationData.slides || [];
+                    this.currentSlideIndex = 0;
+                    this.renderSlidesPanel();
+                    this.updateSlideEditor();
+                    
+                    alert('Presentation loaded successfully!');
+                } catch (e) {
+                    alert('Error: Invalid presentation file format');
+                }
+            } else {
+                alert('Error loading presentation');
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+    
+    async sharePresentation() {
+        if (!localStorage.token) {
+            alert('Please login to share presentations');
+            return;
+        }
+        
+        // First save to cloud
+        const presentationData = {
+            title: `Shared_Presentation_${new Date().toISOString().split('T')[0]}`,
+            slides: this.slides,
+            created: new Date().toISOString(),
+            version: '1.0'
+        };
+        
+        const blob = new Blob([JSON.stringify(presentationData)], { 
+            type: 'application/json' 
+        });
+        
+        const file = new File([blob], `${presentationData.title}.upppt`, { 
+            type: 'application/json' 
+        });
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const saveResponse = await fetch('/api/cloud/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': localStorage.token
+                },
+                body: formData
+            });
+            
+            const saveResult = await saveResponse.json();
+            
+            if (saveResponse.ok) {
+                // Now make it public
+                const shareResponse = await fetch(`/api/cloud/files/${saveResult.file_id}/share`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': localStorage.token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (shareResponse.ok) {
+                    const shareResult = await shareResponse.json();
+                    const publicUrl = `${window.location.origin}/presentationeditor.html?publicToken=${shareResult.public_token}`;
+                    
+                    // Show share dialog
+                    const shareUrl = prompt('Presentation is now public! Share this URL:', publicUrl);
+                    if (shareUrl) {
+                        navigator.clipboard.writeText(shareUrl).then(() => {
+                            alert('URL copied to clipboard!');
+                        });
+                    }
+                } else {
+                    alert('Error sharing presentation');
+                }
+            } else {
+                alert('Error saving presentation: ' + saveResult.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+    
+    exportToPPTX() {
+        alert('PPTX export functionality would be implemented here with a library like pptxgenjs');
+        // This would require including pptxgenjs library
+    }
+    
+    exportToPDF() {
+        alert('PDF export functionality would be implemented here');
+        // This could use window.print() with custom styles or a PDF library
+    }
+}
+
+// Utility function
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Check for public token in URL
+const urlParams = new URLSearchParams(window.location.search);
+const publicToken = urlParams.get('publicToken');
+
+if (publicToken) {
+    // Load public presentation
+    fetch(`/api/cloud/public/${publicToken}`)
+        .then(response => response.json())
+        .then(presentationData => {
+            const editor = new PresentationEditor();
+            editor.slides = presentationData.slides || [];
+            editor.currentSlideIndex = 0;
+            editor.renderSlidesPanel();
+            editor.updateSlideEditor();
+            
+            // Make editor read-only for public viewers
+            document.querySelectorAll('button, select, input').forEach(el => {
+                el.disabled = true;
+            });
+            document.getElementById('currentSlide').contentEditable = false;
+            
+            alert('You are viewing a shared presentation in read-only mode');
+        })
+        .catch(error => {
+            console.error('Error loading public presentation:', error);
+            new PresentationEditor(); // Fallback to new presentation
+        });
+} else {
+    // Initialize editor normally
+    document.addEventListener('DOMContentLoaded', () => {
+        new PresentationEditor();
+    });
+}
+</script>
+</body>
+</html>

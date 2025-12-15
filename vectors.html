@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Editor - UPPER Office</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --bg-dark: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-light: #f1f5f9;
+            --text-muted: #cbd5e1;
+            --border-dark: #475569;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 0.5rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-dark);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-dark);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Tools */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+
+        .tool-btn {
+            background: var(--bg-tertiary);
+            border: 2px solid transparent;
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            cursor: pointer;
+            color: var(--text-light);
+            font-size: 1.25rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-btn:hover {
+            background: #475569;
+            transform: translateY(-2px);
+        }
+
+        .tool-btn.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .tool-btn .tooltip {
+            position: absolute;
+            background: #000;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .tool-btn:hover .tooltip {
+            opacity: 1;
+        }
+
+        /* Properties */
+        .property-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .property-label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .color-input {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .color-input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-input::-webkit-color-swatch {
+            border: none;
+            border-radius: var(--radius);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-tertiary);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 2px solid var(--text-light);
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        /* Canvas Area */
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            background: var(--bg-tertiary);
+            overflow: hidden;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Layers Panel */
+        .layers-panel {
+            padding: 1.5rem;
+        }
+
+        .layers-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            cursor: move;
+            border: 2px solid transparent;
+        }
+
+        .layer-item:hover {
+            background: #475569;
+        }
+
+        .layer-item.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .layer-visibility {
+            margin-right: 0.75rem;
+            cursor: pointer;
+        }
+
+        .layer-name {
+            flex: 1;
+            font-size: 0.875rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-light);
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* Status */
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-dark);
+        }
+
+        /* Export Options */
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .export-option {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .export-option:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .export-option-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .export-option-label {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .export-option-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 240px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            
+            .panel {
+                min-width: 200px;
+                border-right: 1px solid var(--border-dark);
+                border-bottom: none;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content {
+            animation: slideIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
+    <div class="header">
+        <div class="logo"><a href="/">UPPER OFFICE - </a>🎨 VECTOR EDITOR</div>
+        <div class="header-controls">
+            <button class="btn" id="saveBtn">💾 Save</button>
+            <button class="btn" id="exportBtn">📤 Export</button>
+            <button class="btn btn-success" id="saveToCloudBtn">☁️ Save to Cloud</button>
+            <button class="btn btn-warning" id="loadFromCloudBtn">📂 Load from Cloud</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Left Sidebar - Tools & Properties -->
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">Tools</div>
+                <div class="tools-grid">
+                    <button class="tool-btn" data-tool="select" title="Selection Tool">
+                        ↖️
+                        <span class="tooltip">Select (V)</span>
+                    </button>
+                    <button class="tool-btn active" data-tool="rectangle" title="Rectangle">
+                        ⬜
+                        <span class="tooltip">Rectangle (R)</span>
+                    </button>
+                    <button class="tool-btn" data-tool="circle" title="Circle">
+                        ⭕
+                        <span class="tooltip">Circle (C)</span>
+                    </button>
+                    <button class="tool-btn" data-tool="line" title="Line">
+                        📏
+                        <span class="tooltip">Line (L)</span>
+                    </button>
+                    <button class="tool-btn" data-tool="pen" title="Pen Tool">
+                        ✏️
+                        <span class="tooltip">Pen (P)</span>
+                    </button>
+                    <button class="tool-btn" data-tool="text" title="Text Tool">
+                        🔤
+                        <span class="tooltip">Text (T)</span>
+                    </button>
+                    <button class="tool-btn" data-tool="polygon" title="Polygon">
+                        ⬢
+                        <span class="tooltip">Polygon</span>
+                    </button>
+                    <button class="tool-btn" data-tool="star" title="Star">
+                        ⭐
+                        <span class="tooltip">Star</span>
+                    </button>
+                    <button class="tool-btn" data-tool="eraser" title="Eraser">
+                        🧽
+                        <span class="tooltip">Eraser (E)</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Properties</div>
+                <div class="property-group">
+                    <label class="property-label">Fill Color</label>
+                    <div class="color-picker">
+                        <input type="color" class="color-input" id="fillColor" value="#6366f1">
+                        <button class="btn btn-secondary" id="toggleFill">Toggle</button>
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <label class="property-label">Stroke Color</label>
+                    <div class="color-picker">
+                        <input type="color" class="color-input" id="strokeColor" value="#000000">
+                        <input type="color" class="color-input" id="strokeColor2" value="#ffffff" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <label class="property-label">Stroke Width</label>
+                    <div class="slider-container">
+                        <input type="range" id="strokeWidth" min="0" max="50" value="2">
+                        <span class="slider-value" id="strokeWidthValue">2px</span>
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <label class="property-label">Opacity</label>
+                    <div class="slider-container">
+                        <input type="range" id="opacity" min="0" max="100" value="100">
+                        <span class="slider-value" id="opacityValue">100%</span>
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <label class="property-label">Shadow</label>
+                    <div class="slider-container">
+                        <input type="range" id="shadowBlur" min="0" max="50" value="0">
+                        <span class="slider-value" id="shadowBlurValue">0px</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-area">
+            <div class="canvas-container">
+                <canvas id="vectorCanvas"></canvas>
+            </div>
+            <div class="status-bar">
+                <div id="cursorPosition">X: 0, Y: 0</div>
+                <div id="canvasZoom">Zoom: 100%</div>
+                <div id="selectedObject">Selected: None</div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar - Layers & History -->
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">Layers</div>
+                <div class="layers-list" id="layersList">
+                    <!-- Layers will be added here -->
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button class="btn btn-secondary" id="addLayerBtn">+ Add Layer</button>
+                    <button class="btn btn-danger" id="deleteLayerBtn" style="margin-top: 0.5rem;">🗑️ Delete</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">History</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" id="undoBtn">↩️ Undo</button>
+                    <button class="btn btn-secondary" id="redoBtn">↪️ Redo</button>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button class="btn btn-warning" id="clearBtn">🗑️ Clear Canvas</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Quick Actions</div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="btn btn-secondary" id="alignLeftBtn">⬅️ Align Left</button>
+                    <button class="btn btn-secondary" id="alignCenterBtn">↔️ Align Center</button>
+                    <button class="btn btn-secondary" id="alignRightBtn">➡️ Align Right</button>
+                    <button class="btn btn-secondary" id="groupBtn">👥 Group</button>
+                    <button class="btn btn-secondary" id="ungroupBtn">👤 Ungroup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">Export Options</h3>
+                <button class="tool-btn" id="closeExportModal" style="background: transparent; font-size: 1.5rem;">✕</button>
+            </div>
+            
+            <div class="export-options">
+                <div class="export-option" data-format="png">
+                    <div class="export-option-icon">🖼️</div>
+                    <div class="export-option-label">PNG</div>
+                    <div class="export-option-desc">High quality image</div>
+                </div>
+                
+                <div class="export-option" data-format="jpg">
+                    <div class="export-option-icon">📸</div>
+                    <div class="export-option-label">JPG</div>
+                    <div class="export-option-desc">Compressed image</div>
+                </div>
+                
+                <div class="export-option" data-format="svg">
+                    <div class="export-option-icon">📐</div>
+                    <div class="export-option-label">SVG</div>
+                    <div class="export-option-desc">Vector format</div>
+                </div>
+                
+                <div class="export-option" data-format="pdf">
+                    <div class="export-option-icon">📄</div>
+                    <div class="export-option-label">PDF</div>
+                    <div class="export-option-desc">Document format</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1.5rem;">
+                <button class="btn" id="exportSelectedBtn">Export Selected Only</button>
+                <button class="btn btn-success" id="exportAllBtn">Export Entire Canvas</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="cloudModal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">Cloud Storage</h3>
+                <button class="tool-btn" id="closeCloudModal" style="background: transparent; font-size: 1.5rem;">✕</button>
+            </div>
+            
+            <div id="cloudFilesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; max-height: 400px; overflow-y: auto; margin: 1.5rem 0;"></div>
+            
+            <div id="cloudStatus" style="text-align: center; color: var(--text-muted); margin: 1rem 0;"></div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" id="uploadNewBtn">Upload New</button>
+                <button class="btn btn-danger" id="deleteCloudBtn">Delete Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class VectorEditor {
+            constructor() {
+                this.canvas = null;
+                this.currentTool = 'rectangle';
+                this.colors = {
+                    fill: '#6366f1',
+                    stroke: '#000000',
+                    stroke2: '#ffffff'
+                };
+                this.properties = {
+                    strokeWidth: 2,
+                    opacity: 1,
+                    shadowBlur: 0,
+                    shadowColor: '#000000'
+                };
+                this.history = [];
+                this.historyIndex = -1;
+                this.layers = [];
+                this.activeLayer = null;
+                this.isDrawing = false;
+                this.isDragging = false;
+                this.lastPosX = 0;
+                this.lastPosY = 0;
+                this.zoomLevel = 1;
+                this.selectedObjects = [];
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCanvas();
+                this.bindEvents();
+                this.setupTools();
+                this.setupLayers();
+                this.saveHistory();
+            }
+            
+            setupCanvas() {
+                this.canvas = new fabric.Canvas('vectorCanvas', {
+                    width: window.innerWidth - 560,
+                    height: window.innerHeight - 100,
+                    backgroundColor: '#ffffff',
+                    selection: true,
+                    selectionColor: 'rgba(99, 102, 241, 0.3)',
+                    selectionBorderColor: '#6366f1',
+                    selectionLineWidth: 2
+                });
+                
+                // Update canvas size on window resize
+                window.addEventListener('resize', () => {
+                    this.canvas.setDimensions({
+                        width: window.innerWidth - 560,
+                        height: window.innerHeight - 100
+                    });
+                    this.canvas.renderAll();
+                });
+                
+                // Add mouse events
+                this.canvas.on('mouse:move', (e) => {
+                    this.updateCursorPosition(e);
+                });
+                
+                this.canvas.on('mouse:down', (e) => {
+                    this.handleMouseDown(e);
+                });
+                
+                this.canvas.on('mouse:up', (e) => {
+                    this.handleMouseUp(e);
+                });
+                
+                this.canvas.on('selection:created', (e) => {
+                    this.updateSelection(e.selected);
+                });
+                
+                this.canvas.on('selection:updated', (e) => {
+                    this.updateSelection(e.selected);
+                });
+                
+                this.canvas.on('selection:cleared', () => {
+                    this.updateSelection([]);
+                });
+                
+                // Add object modification events
+                this.canvas.on('object:modified', () => {
+                    this.saveHistory();
+                    this.updateLayersList();
+                });
+                
+                this.canvas.on('object:added', () => {
+                    this.updateLayersList();
+                });
+                
+                this.canvas.on('object:removed', () => {
+                    this.updateLayersList();
+                });
+            }
+            
+            bindEvents() {
+                // Tool buttons
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                        e.target.closest('.tool-btn').classList.add('active');
+                        this.currentTool = e.target.closest('.tool-btn').dataset.tool;
+                        this.canvas.isDrawingMode = false;
+                        
+                        if (this.currentTool === 'pen') {
+                            this.canvas.isDrawingMode = true;
+                            this.canvas.freeDrawingBrush.width = this.properties.strokeWidth;
+                            this.canvas.freeDrawingBrush.color = this.colors.stroke;
+                        } else if (this.currentTool === 'eraser') {
+                            this.canvas.isDrawingMode = true;
+                            this.canvas.freeDrawingBrush.width = this.properties.strokeWidth * 2;
+                            this.canvas.freeDrawingBrush.color = '#ffffff';
+                        } else {
+                            this.canvas.selection = true;
+                        }
+                    });
+                });
+                
+                // Color pickers
+                document.getElementById('fillColor').addEventListener('change', (e) => {
+                    this.colors.fill = e.target.value;
+                    this.applyPropertiesToSelection();
+                });
+                
+                document.getElementById('strokeColor').addEventListener('change', (e) => {
+                    this.colors.stroke = e.target.value;
+                    this.applyPropertiesToSelection();
+                });
+                
+                // Property sliders
+                document.getElementById('strokeWidth').addEventListener('input', (e) => {
+                    this.properties.strokeWidth = parseInt(e.target.value);
+                    document.getElementById('strokeWidthValue').textContent = `${this.properties.strokeWidth}px`;
+                    this.applyPropertiesToSelection();
+                });
+                
+                document.getElementById('opacity').addEventListener('input', (e) => {
+                    this.properties.opacity = parseInt(e.target.value) / 100;
+                    document.getElementById('opacityValue').textContent = `${parseInt(e.target.value)}%`;
+                    this.applyPropertiesToSelection();
+                });
+                
+                document.getElementById('shadowBlur').addEventListener('input', (e) => {
+                    this.properties.shadowBlur = parseInt(e.target.value);
+                    document.getElementById('shadowBlurValue').textContent = `${this.properties.shadowBlur}px`;
+                    this.applyPropertiesToSelection();
+                });
+                
+                // Toggle fill
+                document.getElementById('toggleFill').addEventListener('click', () => {
+                    this.colors.fill = this.colors.fill === 'transparent' ? '#6366f1' : 'transparent';
+                    document.getElementById('fillColor').value = this.colors.fill === 'transparent' ? '#ffffff' : this.colors.fill;
+                    this.applyPropertiesToSelection();
+                });
+                
+                // History buttons
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('redoBtn').addEventListener('click', () => this.redo());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearCanvas());
+                
+                // Layer buttons
+                document.getElementById('addLayerBtn').addEventListener('click', () => this.addLayer());
+                document.getElementById('deleteLayerBtn').addEventListener('click', () => this.deleteLayer());
+                
+                // Alignment buttons
+                document.getElementById('alignLeftBtn').addEventListener('click', () => this.alignObjects('left'));
+                document.getElementById('alignCenterBtn').addEventListener('click', () => this.alignObjects('center'));
+                document.getElementById('alignRightBtn').addEventListener('click', () => this.alignObjects('right'));
+                
+                // Group buttons
+                document.getElementById('groupBtn').addEventListener('click', () => this.groupObjects());
+                document.getElementById('ungroupBtn').addEventListener('click', () => this.ungroupObjects());
+                
+                // Export buttons
+                document.getElementById('exportBtn').addEventListener('click', () => this.showExportModal());
+                document.getElementById('closeExportModal').addEventListener('click', () => this.hideExportModal());
+                document.getElementById('exportSelectedBtn').addEventListener('click', () => this.exportSelected());
+                document.getElementById('exportAllBtn').addEventListener('click', () => this.exportAll());
+                
+                document.querySelectorAll('.export-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        const format = e.target.closest('.export-option').dataset.format;
+                        this.selectedExportFormat = format;
+                        document.querySelectorAll('.export-option').forEach(o => o.style.borderColor = 'transparent');
+                        e.target.closest('.export-option').style.borderColor = '#6366f1';
+                    });
+                });
+                
+                // Cloud buttons
+                document.getElementById('saveToCloudBtn').addEventListener('click', () => this.saveToCloud());
+                document.getElementById('loadFromCloudBtn').addEventListener('click', () => this.showCloudModal());
+                document.getElementById('closeCloudModal').addEventListener('click', () => this.hideCloudModal());
+                document.getElementById('uploadNewBtn').addEventListener('click', () => this.uploadNewToCloud());
+                document.getElementById('deleteCloudBtn').addEventListener('click', () => this.deleteFromCloud());
+                
+                // Save button
+                document.getElementById('saveBtn').addEventListener('click', () => this.saveProject());
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+Z / Cmd+Z for undo
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                        e.preventDefault();
+                        this.undo();
+                    }
+                    
+                    // Ctrl+Y / Cmd+Y for redo
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                        e.preventDefault();
+                        this.redo();
+                    }
+                    
+                    // Ctrl+G / Cmd+G for group
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+                        e.preventDefault();
+                        this.groupObjects();
+                    }
+                    
+                    // Delete key
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                        e.preventDefault();
+                        this.deleteSelected();
+                    }
+                    
+                    // Tool shortcuts
+                    if (e.key === 'v') this.setTool('select');
+                    if (e.key === 'r') this.setTool('rectangle');
+                    if (e.key === 'c') this.setTool('circle');
+                    if (e.key === 'l') this.setTool('line');
+                    if (e.key === 'p') this.setTool('pen');
+                    if (e.key === 't') this.setTool('text');
+                    if (e.key === 'e') this.setTool('eraser');
+                });
+            }
+            
+            setTool(tool) {
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector(`.tool-btn[data-tool="${tool}"]`).classList.add('active');
+                this.currentTool = tool;
+                this.canvas.isDrawingMode = false;
+                
+                if (tool === 'pen') {
+                    this.canvas.isDrawingMode = true;
+                    this.canvas.freeDrawingBrush.width = this.properties.strokeWidth;
+                    this.canvas.freeDrawingBrush.color = this.colors.stroke;
+                } else if (tool === 'eraser') {
+                    this.canvas.isDrawingMode = true;
+                    this.canvas.freeDrawingBrush.width = this.properties.strokeWidth * 2;
+                    this.canvas.freeDrawingBrush.color = '#ffffff';
+                } else {
+                    this.canvas.selection = true;
+                }
+            }
+            
+            handleMouseDown(e) {
+                if (!e.target) {
+                    this.isDrawing = true;
+                    const pointer = this.canvas.getPointer(e.e);
+                    this.lastPosX = pointer.x;
+                    this.lastPosY = pointer.y;
+                    
+                    switch(this.currentTool) {
+                        case 'rectangle':
+                            this.drawRectangle(pointer.x, pointer.y);
+                            break;
+                        case 'circle':
+                            this.drawCircle(pointer.x, pointer.y);
+                            break;
+                        case 'line':
+                            this.drawLine(pointer.x, pointer.y);
+                            break;
+                        case 'text':
+                            this.addText(pointer.x, pointer.y);
+                            break;
+                        case 'polygon':
+                            this.drawPolygon(pointer.x, pointer.y);
+                            break;
+                        case 'star':
+                            this.drawStar(pointer.x, pointer.y);
+                            break;
+                    }
+                }
+            }
+            
+            handleMouseUp(e) {
+                this.isDrawing = false;
+                if (this.currentTool !== 'select' && this.canvas.getActiveObject()) {
+                    this.canvas.getActiveObject().selectable = true;
+                    this.saveHistory();
+                }
+            }
+            
+            updateCursorPosition(e) {
+                if (e.pointer) {
+                    const x = Math.round(e.pointer.x);
+                    const y = Math.round(e.pointer.y);
+                    document.getElementById('cursorPosition').textContent = `X: ${x}, Y: ${y}`;
+                    
+                    if (this.isDrawing && this.canvas.getActiveObject()) {
+                        const pointer = this.canvas.getPointer(e.e);
+                        const activeObj = this.canvas.getActiveObject();
+                        
+                        switch(this.currentTool) {
+                            case 'rectangle':
+                            case 'circle':
+                                activeObj.set({
+                                    width: Math.abs(pointer.x - this.lastPosX),
+                                    height: Math.abs(pointer.y - this.lastPosY),
+                                    left: Math.min(pointer.x, this.lastPosX),
+                                    top: Math.min(pointer.y, this.lastPosY)
+                                });
+                                break;
+                            case 'line':
+                                activeObj.set({
+                                    x2: pointer.x,
+                                    y2: pointer.y
+                                });
+                                break;
+                        }
+                        this.canvas.renderAll();
+                    }
+                }
+            }
+            
+            drawRectangle(x, y) {
+                const rect = new fabric.Rect({
+                    left: x,
+                    top: y,
+                    width: 0,
+                    height: 0,
+                    fill: this.colors.fill,
+                    stroke: this.colors.stroke,
+                    strokeWidth: this.properties.strokeWidth,
+                    opacity: this.properties.opacity,
+                    shadow: this.properties.shadowBlur > 0 ? new fabric.Shadow({
+                        color: this.properties.shadowColor,
+                        blur: this.properties.shadowBlur
+                    }) : null,
+                    selectable: false
+                });
+                this.canvas.add(rect);
+                this.canvas.setActiveObject(rect);
+            }
+            
+            drawCircle(x, y) {
+                const circle = new fabric.Circle({
+                    left: x,
+                    top: y,
+                    radius: 0,
+                    fill: this.colors.fill,
+                    stroke: this.colors.stroke,
+                    strokeWidth: this.properties.strokeWidth,
+                    opacity: this.properties.opacity,
+                    shadow: this.properties.shadowBlur > 0 ? new fabric.Shadow({
+                        color: this.properties.shadowColor,
+                        blur: this.properties.shadowBlur
+                    }) : null,
+                    selectable: false
+                });
+                this.canvas.add(circle);
+                this.canvas.setActiveObject(circle);
+            }
+            
+            drawLine(x, y) {
+                const line = new fabric.Line([x, y, x, y], {
+                    stroke: this.colors.stroke,
+                    strokeWidth: this.properties.strokeWidth,
+                    opacity: this.properties.opacity,
+                    shadow: this.properties.shadowBlur > 0 ? new fabric.Shadow({
+                        color: this.properties.shadowColor,
+                        blur: this.properties.shadowBlur
+                    }) : null,
+                    selectable: false
+                });
+                this.canvas.add(line);
+                this.canvas.setActiveObject(line);
+            }
+            
+            addText(x, y) {
+                const text = new fabric.IText('Double click to edit', {
+                    left: x,
+                    top: y,
+                    fill: this.colors.stroke,
+                    fontSize: 24,
+                    fontFamily: 'Arial',
+                    opacity: this.properties.opacity,
+                    shadow: this.properties.shadowBlur > 0 ? new fabric.Shadow({
+                        color: this.properties.shadowColor,
+                        blur: this.properties.shadowBlur
+                    }) : null
+                });
+                this.canvas.add(text);
+                this.canvas.setActiveObject(text);
+                text.enterEditing();
+                text.selectAll();
+            }
+            
+            drawPolygon(x, y) {
+                const points = [];
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * 2 * Math.PI) / 6;
+                    points.push({x: Math.cos(angle) * 50, y: Math.sin(angle) * 50});
+                }
+                
+                const polygon = new fabric.Polygon(points, {
+                    left: x,
+                    top: y,
+                    fill: this.colors.fill,
+                    stroke: this.colors.stroke,
+                    strokeWidth: this.properties.strokeWidth,
+                    opacity: this.properties.opacity,
+                    shadow: this.properties.shadowBlur > 0 ? new fabric.Shadow({
+                        color: this.properties.shadowColor,
+                        blur: this.properties.shadowBlur
+                    }) : null,
+                    selectable: false
+                });
+                this.canvas.add(polygon);
+                this.canvas.setActiveObject(polygon);
+            }
+            
+            drawStar(x, y) {
+                const points = [];
+                for (let i = 0; i < 10; i++) {
+                    const radius = i % 2 === 0 ? 50 : 25;
+                    const angle = (i * Math.PI) / 5;
+                    points.push({x: Math.cos(angle) * radius, y: Math.sin(angle) * radius});
+                }
+                
+                const star = new fabric.Polygon(points, {
+                    left: x,
+                    top: y,
+                    fill: this.colors.fill,
+                    stroke: this.colors.stroke,
+                    strokeWidth: this.properties.strokeWidth,
+                    opacity: this.properties.opacity,
+                    shadow: this.properties.shadowBlur > 0 ? new fabric.Shadow({
+                        color: this.properties.shadowColor,
+                        blur: this.properties.shadowBlur
+                    }) : null,
+                    selectable: false
+                });
+                this.canvas.add(star);
+                this.canvas.setActiveObject(star);
+            }
+            
+            updateSelection(selected) {
+                this.selectedObjects = selected || [];
+                if (selected && selected.length > 0) {
+                    document.getElementById('selectedObject').textContent = `Selected: ${selected.length} object(s)`;
+                    
+                    // Update properties from first selected object
+                    const obj = selected[0];
+                    this.colors.fill = obj.fill || 'transparent';
+                    this.colors.stroke = obj.stroke || '#000000';
+                    this.properties.strokeWidth = obj.strokeWidth || 2;
+                    this.properties.opacity = (obj.opacity || 1) * 100;
+                    this.properties.shadowBlur = obj.shadow ? obj.shadow.blur || 0 : 0;
+                    
+                    // Update UI
+                    document.getElementById('fillColor').value = this.colors.fill === 'transparent' ? '#ffffff' : this.colors.fill;
+                    document.getElementById('strokeColor').value = this.colors.stroke;
+                    document.getElementById('strokeWidth').value = this.properties.strokeWidth;
+                    document.getElementById('strokeWidthValue').textContent = `${this.properties.strokeWidth}px`;
+                    document.getElementById('opacity').value = this.properties.opacity;
+                    document.getElementById('opacityValue').textContent = `${this.properties.opacity}%`;
+                    document.getElementById('shadowBlur').value = this.properties.shadowBlur;
+                    document.getElementById('shadowBlurValue').textContent = `${this.properties.shadowBlur}px`;
+                } else {
+                    document.getElementById('selectedObject').textContent = 'Selected: None';
+                }
+            }
+            
+            applyPropertiesToSelection() {
+                this.canvas.getActiveObjects().forEach(obj => {
+                    obj.set({
+                        fill: this.colors.fill,
+                        stroke: this.colors.stroke,
+                        strokeWidth: this.properties.strokeWidth,
+                        opacity: this.properties.opacity / 100,
+                        shadow: this.properties.shadowBlur > 0 ? new fabric.Shadow({
+                            color: this.properties.shadowColor,
+                            blur: this.properties.shadowBlur
+                        }) : null
+                    });
+                });
+                this.canvas.renderAll();
+            }
+            
+            saveHistory() {
+                this.historyIndex++;
+                if (this.historyIndex < this.history.length) {
+                    this.history.length = this.historyIndex;
+                }
+                this.history.push(JSON.stringify(this.canvas.toJSON()));
+            }
+            
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.loadFromHistory();
+                }
+            }
+            
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.loadFromHistory();
+                }
+            }
+            
+            loadFromHistory() {
+                if (this.history[this.historyIndex]) {
+                    this.canvas.loadFromJSON(this.history[this.historyIndex], () => {
+                        this.canvas.renderAll();
+                        this.updateLayersList();
+                    });
+                }
+            }
+            
+            clearCanvas() {
+                if (confirm('Are you sure you want to clear the canvas?')) {
+                    this.canvas.clear();
+                    this.canvas.backgroundColor = '#ffffff';
+                    this.saveHistory();
+                    this.updateLayersList();
+                }
+            }
+            
+            setupLayers() {
+                this.addLayer('Background');
+                this.addLayer('Layer 1');
+                this.activeLayer = this.layers[1];
+                this.updateLayersList();
+            }
+            
+            addLayer(name = null) {
+                if (!name) {
+                    name = `Layer ${this.layers.length + 1}`;
+                }
+                
+                const layer = {
+                    id: Date.now(),
+                    name: name,
+                    visible: true,
+                    objects: []
+                };
+                
+                this.layers.push(layer);
+                this.updateLayersList();
+                return layer;
+            }
+            
+            deleteLayer() {
+                if (this.layers.length > 1) {
+                    this.layers.pop();
+                    this.updateLayersList();
+                }
+            }
+            
+            updateLayersList() {
+                const layersList = document.getElementById('layersList');
+                layersList.innerHTML = '';
+                
+                this.layers.forEach((layer, index) => {
+                    const layerItem = document.createElement('div');
+                    layerItem.className = `layer-item ${layer === this.activeLayer ? 'active' : ''}`;
+                    layerItem.innerHTML = `
+                        <div class="layer-visibility">${layer.visible ? '👁️' : '👁️‍🗨️'}</div>
+                        <div class="layer-name">${layer.name}</div>
+                    `;
+                    
+                    layerItem.addEventListener('click', () => {
+                        this.activeLayer = layer;
+                        this.updateLayersList();
+                    });
+                    
+                    layerItem.querySelector('.layer-visibility').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        layer.visible = !layer.visible;
+                        this.updateLayersList();
+                    });
+                    
+                    layersList.appendChild(layerItem);
+                });
+            }
+            
+            alignObjects(alignment) {
+                const selected = this.canvas.getActiveObjects();
+                if (selected.length < 2) return;
+                
+                let reference;
+                switch(alignment) {
+                    case 'left':
+                        reference = Math.min(...selected.map(obj => obj.left));
+                        selected.forEach(obj => obj.set('left', reference));
+                        break;
+                    case 'center':
+                        reference = selected.reduce((sum, obj) => sum + obj.left + obj.width/2, 0) / selected.length;
+                        selected.forEach(obj => obj.set('left', reference - obj.width/2));
+                        break;
+                    case 'right':
+                        reference = Math.max(...selected.map(obj => obj.left + obj.width));
+                        selected.forEach(obj => obj.set('left', reference - obj.width));
+                        break;
+                }
+                
+                this.canvas.renderAll();
+                this.saveHistory();
+            }
+            
+            groupObjects() {
+                const selected = this.canvas.getActiveObjects();
+                if (selected.length > 1) {
+                    const group = new fabric.Group(selected);
+                    this.canvas.remove(...selected);
+                    this.canvas.add(group);
+                    this.canvas.setActiveObject(group);
+                    this.saveHistory();
+                }
+            }
+            
+            ungroupObjects() {
+                const active = this.canvas.getActiveObject();
+                if (active && active.type === 'group') {
+                    const objects = active.getObjects();
+                    this.canvas.remove(active);
+                    objects.forEach(obj => {
+                        this.canvas.add(obj);
+                        obj.setCoords();
+                    });
+                    this.canvas.renderAll();
+                    this.saveHistory();
+                }
+            }
+            
+            deleteSelected() {
+                const selected = this.canvas.getActiveObjects();
+                if (selected.length > 0) {
+                    this.canvas.remove(...selected);
+                    this.canvas.discardActiveObject();
+                    this.canvas.renderAll();
+                    this.saveHistory();
+                }
+            }
+            
+            showExportModal() {
+                document.getElementById('exportModal').classList.add('show');
+            }
+            
+            hideExportModal() {
+                document.getElementById('exportModal').classList.remove('show');
+            }
+            
+            exportSelected() {
+                if (!this.selectedExportFormat) {
+                    alert('Please select an export format first');
+                    return;
+                }
+                
+                const selected = this.canvas.getActiveObjects();
+                if (selected.length === 0) {
+                    alert('No objects selected');
+                    return;
+                }
+                
+                const group = new fabric.Group(selected);
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = group.width * this.zoomLevel;
+                tempCanvas.height = group.height * this.zoomLevel;
+                
+                const tempFabric = new fabric.Canvas(tempCanvas);
+                selected.forEach(obj => {
+                    const cloned = fabric.util.object.clone(obj);
+                    cloned.set({
+                        left: cloned.left - group.left,
+                        top: cloned.top - group.top
+                    });
+                    tempFabric.add(cloned);
+                });
+                
+                this.exportCanvas(tempFabric, `selected_${Date.now()}`);
+                this.hideExportModal();
+            }
+            
+            exportAll() {
+                if (!this.selectedExportFormat) {
+                    alert('Please select an export format first');
+                    return;
+                }
+                
+                this.exportCanvas(this.canvas, `vector_art_${Date.now()}`);
+                this.hideExportModal();
+            }
+            
+            exportCanvas(canvas, filename) {
+                const format = this.selectedExportFormat;
+                
+                switch(format) {
+                    case 'png':
+                        const pngData = canvas.toDataURL({
+                            format: 'png',
+                            multiplier: 2
+                        });
+                        this.downloadFile(pngData, `${filename}.png`);
+                        break;
+                        
+                    case 'jpg':
+                        const jpgData = canvas.toDataURL({
+                            format: 'jpeg',
+                            multiplier: 2,
+                            quality: 0.9
+                        });
+                        this.downloadFile(jpgData, `${filename}.jpg`);
+                        break;
+                        
+                    case 'svg':
+                        const svgData = canvas.toSVG();
+                        const svgBlob = new Blob([svgData], {type: 'image/svg+xml'});
+                        const svgUrl = URL.createObjectURL(svgBlob);
+                        this.downloadFile(svgUrl, `${filename}.svg`);
+                        break;
+                        
+                    case 'pdf':
+                        alert('PDF export requires additional libraries. Exporting as PNG instead.');
+                        const pdfData = canvas.toDataURL({
+                            format: 'png',
+                            multiplier: 2
+                        });
+                        this.downloadFile(pdfData, `${filename}.png`);
+                        break;
+                }
+            }
+            
+            downloadFile(data, filename) {
+                const link = document.createElement('a');
+                link.href = data;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            async saveToCloud() {
+                if (!localStorage.token) {
+                    alert('Please login to save to cloud');
+                    return;
+                }
+                
+                const projectData = {
+                    type: 'vector',
+                    data: this.canvas.toJSON(),
+                    layers: this.layers,
+                    created: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                const blob = new Blob([JSON.stringify(projectData)], { 
+                    type: 'application/json' 
+                });
+                
+                const file = new File([blob], `vector_${Date.now()}.json`, { 
+                    type: 'application/json' 
+                });
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch('/api/cloud/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': localStorage.token
+                        },
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert('Vector project saved to cloud successfully!');
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Error uploading file: ' + error.message);
+                }
+            }
+            
+            async showCloudModal() {
+                if (!localStorage.token) {
+                    alert('Please login to access cloud files');
+                    return;
+                }
+                
+                document.getElementById('cloudModal').classList.add('show');
+                await this.loadCloudFiles();
+            }
+            
+            hideCloudModal() {
+                document.getElementById('cloudModal').classList.remove('show');
+            }
+            
+            async loadCloudFiles() {
+                const statusEl = document.getElementById('cloudStatus');
+                const gridEl = document.getElementById('cloudFilesGrid');
+                
+                statusEl.textContent = 'Loading files...';
+                
+                try {
+                    const response = await fetch('/api/cloud/files', {
+                        headers: {
+                            'Authorization': localStorage.token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const files = await response.json();
+                        const vectorFiles = files.filter(file => 
+                            file.filename.endsWith('.json') || file.type === 'document'
+                        );
+                        
+                        if (vectorFiles.length === 0) {
+                            statusEl.innerHTML = `
+                                <div style="text-align: center; padding: 20px;">
+                                    <div style="font-size: 48px; margin-bottom: 16px;">📁</div>
+                                    <h4 style="margin-bottom: 8px;">No vector files found</h4>
+                                    <p style="color: #666; font-size: 14px;">Save some vector projects to your cloud storage first.</p>
+                                </div>
+                            `;
+                            return;
+                        }
+                        
+                        gridEl.innerHTML = '';
+                        statusEl.textContent = `Found ${vectorFiles.length} vector files`;
+                        
+                        vectorFiles.forEach(file => {
+                            const card = document.createElement('div');
+                            card.style.cssText = `
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                border-radius: 12px;
+                                padding: 20px;
+                                text-align: center;
+                                cursor: pointer;
+                                transition: all 0.3s;
+                                color: white;
+                                border: 2px solid transparent;
+                            `;
+                            
+                            card.innerHTML = `
+                                <div style="font-size: 48px; margin-bottom: 12px;">🎨</div>
+                                <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; line-height: 1.3;">
+                                    ${file.filename}
+                                </div>
+                                <div style="font-size: 11px; opacity: 0.9;">
+                                    ${this.formatFileSize(file.size)}
+                                </div>
+                                <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">
+                                    ${new Date(file.upload_date).toLocaleDateString()}
+                                </div>
+                            `;
+                            
+                            card.addEventListener('click', async () => {
+                                statusEl.innerHTML = `<div style="color: #4CAF50;">🔄 Loading "${file.filename}"...</div>`;
+                                await this.loadFromCloud(file.id);
+                                this.hideCloudModal();
+                            });
+                            
+                            card.addEventListener('mouseenter', () => {
+                                card.style.transform = 'translateY(-4px)';
+                                card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                                card.style.borderColor = 'white';
+                            });
+                            
+                            card.addEventListener('mouseleave', () => {
+                                card.style.transform = 'translateY(0)';
+                                card.style.boxShadow = 'none';
+                                card.style.borderColor = 'transparent';
+                            });
+                            
+                            gridEl.appendChild(card);
+                        });
+                    } else {
+                        statusEl.innerHTML = `<div style="color: #f44336;">❌ Error loading cloud files</div>`;
+                    }
+                } catch (error) {
+                    statusEl.innerHTML = `<div style="color: #f44336;">❌ Error: ${error.message}</div>`;
+                }
+            }
+            
+            async loadFromCloud(fileId) {
+                try {
+                    const response = await fetch(`/api/cloud/download/${fileId}`, {
+                        headers: {
+                            'Authorization': localStorage.token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const text = await blob.text();
+                        
+                        try {
+                            const projectData = JSON.parse(text);
+                            
+                            if (projectData.type === 'vector' && projectData.data) {
+                                this.canvas.loadFromJSON(projectData.data, () => {
+                                    this.canvas.renderAll();
+                                    this.layers = projectData.layers || [];
+                                    this.updateLayersList();
+                                    this.saveHistory();
+                                    alert('Vector project loaded successfully!');
+                                });
+                            } else {
+                                alert('Error: Invalid vector project file');
+                            }
+                        } catch (e) {
+                            alert('Error: Invalid JSON file');
+                        }
+                    } else {
+                        alert('Error loading file');
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+            
+            async uploadNewToCloud() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json,.svg';
+                input.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            
+                            const response = await fetch('/api/cloud/upload', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': localStorage.token
+                                },
+                                body: formData
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (response.ok) {
+                                alert('File uploaded to cloud successfully!');
+                                await this.loadCloudFiles();
+                            } else {
+                                alert('Error: ' + result.error);
+                            }
+                        } catch (error) {
+                            alert('Error uploading file: ' + error.message);
+                        }
+                    }
+                };
+                input.click();
+            }
+            
+            async deleteFromCloud() {
+                // Implementation would require selecting files first
+                alert('Select files to delete first (feature to be implemented)');
+            }
+            
+            saveProject() {
+                const projectData = {
+                    type: 'vector',
+                    data: this.canvas.toJSON(),
+                    layers: this.layers,
+                    properties: this.properties,
+                    colors: this.colors,
+                    created: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                const dataStr = JSON.stringify(projectData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `vector_project_${Date.now()}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            }
+            
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+            
+            setupTools() {
+                // Initialize fabric brushes
+                this.canvas.freeDrawingBrush = new fabric.PencilBrush(this.canvas);
+                this.canvas.freeDrawingBrush.width = this.properties.strokeWidth;
+                this.canvas.freeDrawingBrush.color = this.colors.stroke;
+            }
+        }
+        
+        // Initialize editor when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.vectorEditor = new VectorEditor();
+        });
+    </script>
+</body>
+</html>

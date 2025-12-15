@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPPER Office - API Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #333333;
+            --header-bg: #1f4060;
+            --text-light: #f2f2f2;
+            --accent-blue: #2a5a8c;
+            --hover-blue: #101e2c;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --input-bg: #4a4a4a;
+            --input-border: #5a5a5a;
+            --input-focus: #2a5a8c;
+            --code-bg: #2d2d2d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-decoration: none;
+            transition: text-shadow 0.3s;
+        }
+
+        .logo:hover {
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+        }
+
+        .navigation {
+            display: flex;
+            align-items: center;
+        }
+
+        .navigation nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background-color: var(--hover-blue);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-light);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            color: #ccc;
+        }
+
+        .api-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 4rem;
+        }
+
+        .category {
+            margin-bottom: 3rem;
+            background: rgba(31, 64, 96, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .category h2 {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-icon {
+            font-size: 1.5rem;
+        }
+
+        .endpoint {
+            background: var(--header-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .endpoint:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .method {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+
+        .method-get { background: var(--success); color: white; }
+        .method-post { background: var(--accent-blue); color: white; }
+        .method-put { background: var(--warning); color: black; }
+        .method-delete { background: var(--danger); color: white; }
+
+        .path {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1.1rem;
+            color: var(--text-light);
+            word-break: break-all;
+            margin: 0.5rem 0;
+        }
+
+        .description {
+            margin: 1rem 0;
+            color: #ccc;
+        }
+
+        .details {
+            background: var(--code-bg);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .details h4 {
+            margin-bottom: 0.5rem;
+            color: var(--text-light);
+        }
+
+        .details pre {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+
+        .param {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .param-name {
+            min-width: 120px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .param-type {
+            color: var(--warning);
+        }
+
+        .param-desc {
+            color: #aaa;
+            flex: 1;
+        }
+
+        .toggle-details {
+            background: none;
+            border: 1px solid var(--accent-blue);
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-details:hover {
+            background: var(--accent-blue);
+        }
+
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            padding: 0 2rem;
+        }
+
+        .search-box {
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            padding: 1rem;
+            width: 100%;
+            color: var(--text-light);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 3px rgba(42, 90, 140, 0.3);
+        }
+
+        .search-box::placeholder {
+            color: #aaa;
+        }
+
+        .quick-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 2rem auto;
+            justify-content: center;
+            max-width: 1200px;
+            padding: 0 2rem;
+        }
+
+        .quick-nav-btn {
+            background: var(--header-bg);
+            color: var(--text-light);
+            border: none;
+            border-radius: 20px;
+            padding: 0.5rem 1.5rem;
+            font-family: 'Montserrat', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .quick-nav-btn:hover {
+            background: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            background-color: var(--header-bg);
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        footer a {
+            color: var(--text-light);
+            text-decoration: none;
+            margin: 0 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        footer a:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
+
+        footer div {
+            margin: 0.5rem 0;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #aaa;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            
+            .logo {
+                margin-bottom: 1rem;
+                font-size: 2rem;
+            }
+            
+            .navigation nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .api-container {
+                padding: 0 1rem 3rem;
+            }
+            
+            .category {
+                padding: 1rem;
+            }
+            
+            .param {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .param-name {
+                min-width: auto;
+            }
+            
+            .quick-nav {
+                padding: 0 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-link {
+                font-size: 0.9rem;
+                padding: 0.4rem 0.8rem;
+            }
+            
+            .hero {
+                padding: 2rem 1rem;
+            }
+            
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            
+            .method {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.6rem;
+            }
+            
+            .path {
+                font-size: 1rem;
+            }
+        }
+
+        .endpoint.highlight {
+            animation: highlight 2s ease;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px rgba(42, 90, 140, 0.3);
+        }
+
+        @keyframes highlight {
+            0% { background: rgba(42, 90, 140, 0.3); }
+            100% { background: var(--header-bg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="gtranslate_wrapper"></div>
+    <script>
+        window.gtranslateSettings = {
+            "default_language":"en",
+            "native_language_names":true,
+            "detect_browser_language":true,
+            "wrapper_selector":".gtranslate_wrapper"
+        }
+    </script>
+    <script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
+
+    <header>
+        <a href="index.html" class="logo">UPPER OFFICE</a>
+        <div class="navigation">
+            <nav>
+                <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+                <li class="nav-item"><a href="api_docs.html" class="nav-link" style="background-color: var(--accent-blue);">API Docs</a></li>
+                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
+                <li class="nav-item"><a href="account.html" class="nav-link">Account</a></li>
+                <li class="nav-item"><a href="Suportus.html" class="nav-link">Support Us</a></li>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>API Documentation</h1>
+            <p>Complete reference for all UpperOffice API endpoints. Use our free public API to integrate UpperOffice functionality into your applications.</p>
+        </section>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search endpoints by name, method, or description...">
+        </div>
+
+        <div class="quick-nav" id="quickNav">
+            <!-- Quick navigation buttons will be added by JavaScript -->
+        </div>
+
+        <div class="no-results" id="noResults">
+            <h3>No matching endpoints found</h3>
+            <p>Try adjusting your search terms</p>
+        </div>
+
+        <div class="api-container" id="apiContainer">
+            <!-- API endpoints will be populated by JavaScript -->
+        </div>
+    </main>
+
+    <footer>
+        <div>
+            <b><a href="https://github.com/schmic75-gasos/UpperOffice/">Find us on Github</a></b>
+        </div>
+        <div>
+            <a href="mailto:info@upperoffice.site">Send us a mail</a>
+        </div>
+        <div>
+            <a href="mailto:owner@upperoffice.site">Send mail to project owner</a>
+        </div>
+        <br>
+        <div>
+            <b>Author(s) of this project comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law.</b>
+        </div>
+        <div>
+            <i>&copy; Michal Schneider &amp; PlagueSurvivor, 2025</i>
+        </div>
+        <div>UPPEROFFICE WEB EDITION, VERSION 0.3.9</div>
+        <div>THE SERVER IS RUNNING ON Raspberry Pi 5 Model B Rev 1.1 (OS: Linux 6.12.47+rpt-rpi-v8 aarch64)</div>
+    </footer>
+
+    <script>
+        // API Endpoints data
+        const apiEndpoints = [
+            // Authentication
+            {
+                category: "Authentication",
+                icon: "🔐",
+                method: "POST",
+                path: "/api/register",
+                description: "Register a new user account",
+                details: {
+                    request: {
+                        username: "string (required)",
+                        password: "string (required)"
+                    },
+                    response: {
+                        status: "string (registered)"
+                    },
+                    example: {
+                        request: '{"username": "user@example.com", "password": "securepassword"}',
+                        response: '{"status": "registered"}'
+                    }
+                }
+            },
+            {
+                category: "Authentication",
+                icon: "🔐",
+                method: "POST",
+                path: "/api/login",
+                description: "Authenticate user and receive access token",
+                details: {
+                    request: {
+                        username: "string (required)",
+                        password: "string (required)"
+                    },
+                    response: {
+                        token: "string (JWT token)"
+                    },
+                    example: {
+                        request: '{"username": "user@example.com", "password": "securepassword"}',
+                        response: '{"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}'
+                    }
+                }
+            },
+            {
+                category: "Authentication",
+                icon: "🔐",
+                method: "GET",
+                path: "/auth/google",
+                description: "Initiate Google OAuth2 authentication flow"
+            },
+            {
+                category: "Authentication",
+                icon: "🔐",
+                method: "GET",
+                path: "/auth/google/callback",
+                description: "Google OAuth2 callback endpoint"
+            },
+            {
+                category: "Authentication",
+                icon: "🔐",
+                method: "POST",
+                path: "/api/logout",
+                description: "Invalidate current user session token",
+                auth: true
+            },
+            {
+                category: "Authentication",
+                icon: "🔐",
+                method: "POST",
+                path: "/api/change-password",
+                description: "Change user password",
+                auth: true,
+                details: {
+                    request: {
+                        old_password: "string (required)",
+                        new_password: "string (required)"
+                    },
+                    response: {
+                        message: "string"
+                    }
+                }
+            },
+
+            // Cloud Storage
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "POST",
+                path: "/api/cloud/upload",
+                description: "Upload file to cloud storage",
+                auth: true,
+                details: {
+                    request: "multipart/form-data with file",
+                    response: {
+                        message: "string",
+                        file_id: "number",
+                        filename: "string",
+                        file_type: "string",
+                        file_size: "number"
+                    }
+                }
+            },
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "GET",
+                path: "/api/cloud/files",
+                description: "Get list of user's cloud files",
+                auth: true,
+                details: {
+                    response: "Array of file objects"
+                }
+            },
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "DELETE",
+                path: "/api/cloud/files/{file_id}",
+                description: "Delete file from cloud storage",
+                auth: true
+            },
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "POST",
+                path: "/api/cloud/files/{file_id}/share",
+                description: "Generate public share link for file",
+                auth: true,
+                details: {
+                    response: {
+                        message: "string",
+                        public_url: "string"
+                    }
+                }
+            },
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "POST",
+                path: "/api/cloud/files/{file_id}/unshare",
+                description: "Make file private (remove public link)",
+                auth: true
+            },
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "GET",
+                path: "/api/cloud/public/{token}",
+                description: "Access publicly shared file"
+            },
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "GET",
+                path: "/api/cloud/download/{file_id}",
+                description: "Download file from cloud storage",
+                auth: true
+            },
+            {
+                category: "Cloud Storage",
+                icon: "☁️",
+                method: "GET",
+                path: "/api/cloud/storage/info",
+                description: "Get user storage usage information",
+                auth: true
+            },
+
+            // Collaboration
+            {
+                category: "Collaboration",
+                icon: "👥",
+                method: "POST",
+                path: "/api/collaboration/session/{file_id}",
+                description: "Create collaboration session for file",
+                auth: true,
+                details: {
+                    request: {
+                        share_mode: "string (read_only or read_write)"
+                    }
+                }
+            },
+            {
+                category: "Collaboration",
+                icon: "👥",
+                method: "GET",
+                path: "/api/collaboration/session/{public_token}",
+                description: "Get collaboration session information"
+            },
+
+            // IDE Projects
+            {
+                category: "IDE Projects",
+                icon: "💻",
+                method: "GET",
+                path: "/api/ide/projects",
+                description: "Get list of IDE projects",
+                auth: true
+            },
+            {
+                category: "IDE Projects",
+                icon: "💻",
+                method: "POST",
+                path: "/api/ide/projects",
+                description: "Create new IDE project",
+                auth: true
+            },
+            {
+                category: "IDE Projects",
+                icon: "💻",
+                method: "PUT",
+                path: "/api/ide/projects/{project_id}",
+                description: "Update IDE project",
+                auth: true
+            },
+            {
+                category: "IDE Projects",
+                icon: "💻",
+                method: "DELETE",
+                path: "/api/ide/projects/{project_id}",
+                description: "Delete IDE project",
+                auth: true
+            },
+
+            // 3D Projects
+            {
+                category: "3D Projects",
+                icon: "🎨",
+                method: "POST",
+                path: "/api/3d/projects",
+                description: "Save 3D project",
+                auth: true
+            },
+            {
+                category: "3D Projects",
+                icon: "🎨",
+                method: "GET",
+                path: "/api/3d/projects",
+                description: "Get list of 3D projects",
+                auth: true
+            },
+            {
+                category: "3D Projects",
+                icon: "🎨",
+                method: "GET",
+                path: "/api/3d/projects/{project_id}",
+                description: "Get specific 3D project",
+                auth: true
+            },
+            {
+                category: "3D Projects",
+                icon: "🎨",
+                method: "PUT",
+                path: "/api/3d/projects/{project_id}",
+                description: "Update 3D project",
+                auth: true
+            },
+            {
+                category: "3D Projects",
+                icon: "🎨",
+                method: "DELETE",
+                path: "/api/3d/projects/{project_id}",
+                description: "Delete 3D project",
+                auth: true
+            },
+
+            // Document Conversion
+            {
+                category: "Document Conversion",
+                icon: "🔄",
+                method: "POST",
+                path: "/api/convert/doc-to-html",
+                description: "Convert DOC/DOCX to HTML",
+                auth: true,
+                details: {
+                    request: "multipart/form-data with file",
+                    response: {
+                        html: "string",
+                        method: "string",
+                        message: "string"
+                    }
+                }
+            },
+            {
+                category: "Document Conversion",
+                icon: "🔄",
+                method: "GET",
+                path: "/api/cloud/convert/{file_id}",
+                description: "Convert cloud file to HTML",
+                auth: true
+            },
+
+            // Calculator
+            {
+                category: "Calculator",
+                icon: "🧮",
+                method: "POST",
+                path: "/api/calc/python",
+                description: "Evaluate Python code safely",
+                details: {
+                    request: {
+                        code: "string (Python expression)"
+                    },
+                    response: {
+                        result: "string"
+                    }
+                }
+            },
+            {
+                category: "Calculator",
+                icon: "🧮",
+                method: "GET",
+                path: "/api/calc/history",
+                description: "Get calculator history",
+                auth: true
+            },
+            {
+                category: "Calculator",
+                icon: "🧮",
+                method: "POST",
+                path: "/api/calc/history",
+                description: "Save calculation to history",
+                auth: true
+            },
+
+            // Miscellaneous
+            {
+                category: "Miscellaneous",
+                icon: "⚙️",
+                method: "GET",
+                path: "/api/profile",
+                description: "Get current user profile",
+                auth: true,
+                details: {
+                    response: {
+                        username: "string"
+                    }
+                }
+            },
+            {
+                category: "Miscellaneous",
+                icon: "⚙️",
+                method: "GET",
+                path: "/api/ffmpegtest",
+                description: "Test FFmpeg installation"
+            }
+        ];
+
+        // Group endpoints by category
+        const categories = [...new Set(apiEndpoints.map(ep => ep.category))];
+
+        // Create quick navigation
+        const quickNav = document.getElementById('quickNav');
+        categories.forEach(category => {
+            const btn = document.createElement('button');
+            btn.className = 'quick-nav-btn';
+            btn.textContent = category;
+            btn.addEventListener('click', () => {
+                const element = document.getElementById(`category-${category.replace(/\s+/g, '-')}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                    element.classList.add('highlight');
+                    setTimeout(() => element.classList.remove('highlight'), 2000);
+                }
+            });
+            quickNav.appendChild(btn);
+        });
+
+        // Render API documentation
+        const apiContainer = document.getElementById('apiContainer');
+        
+        categories.forEach(category => {
+            const categoryEndpoints = apiEndpoints.filter(ep => ep.category === category);
+            const icon = categoryEndpoints[0].icon;
+            
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'category';
+            categoryDiv.id = `category-${category.replace(/\s+/g, '-')}`;
+            
+            categoryDiv.innerHTML = `
+                <h2><span class="category-icon">${icon}</span> ${category}</h2>
+                <div class="endpoints-list"></div>
+            `;
+            
+            const endpointsList = categoryDiv.querySelector('.endpoints-list');
+            
+            categoryEndpoints.forEach(endpoint => {
+                const endpointDiv = document.createElement('div');
+                endpointDiv.className = 'endpoint';
+                endpointDiv.dataset.category = endpoint.category;
+                endpointDiv.dataset.method = endpoint.method;
+                endpointDiv.dataset.path = endpoint.path;
+                endpointDiv.dataset.description = endpoint.description;
+                
+                let methodClass = '';
+                switch(endpoint.method) {
+                    case 'GET': methodClass = 'method-get'; break;
+                    case 'POST': methodClass = 'method-post'; break;
+                    case 'PUT': methodClass = 'method-put'; break;
+                    case 'DELETE': methodClass = 'method-delete'; break;
+                }
+                
+                let detailsHTML = '';
+                if (endpoint.details) {
+                    detailsHTML = `
+                        <div class="details" style="display: none;">
+                            ${endpoint.details.request ? `
+                                <h4>Request Parameters:</h4>
+                                ${typeof endpoint.details.request === 'string' 
+                                    ? `<pre>${endpoint.details.request}</pre>` 
+                                    : Object.entries(endpoint.details.request).map(([key, value]) => `
+                                        <div class="param">
+                                            <div class="param-name">${key}</div>
+                                            <div class="param-type">${value}</div>
+                                        </div>
+                                    `).join('')}
+                            ` : ''}
+                            
+                            ${endpoint.details.response ? `
+                                <h4>Response:</h4>
+                                ${typeof endpoint.details.response === 'string' 
+                                    ? `<pre>${endpoint.details.response}</pre>` 
+                                    : Object.entries(endpoint.details.response).map(([key, value]) => `
+                                        <div class="param">
+                                            <div class="param-name">${key}</div>
+                                            <div class="param-type">${value}</div>
+                                        </div>
+                                    `).join('')}
+                            ` : ''}
+                            
+                            ${endpoint.details.example ? `
+                                <h4>Example:</h4>
+                                ${endpoint.details.example.request ? `
+                                    <div><strong>Request:</strong></div>
+                                    <pre>${endpoint.details.example.request}</pre>
+                                ` : ''}
+                                ${endpoint.details.example.response ? `
+                                    <div><strong>Response:</strong></div>
+                                    <pre>${endpoint.details.example.response}</pre>
+                                ` : ''}
+                            ` : ''}
+                        </div>
+                        <button class="toggle-details">Show Details</button>
+                    `;
+                }
+                
+                endpointDiv.innerHTML = `
+                    <div>
+                        <span class="method ${methodClass}">${endpoint.method}</span>
+                        ${endpoint.auth ? '<span class="method method-post" style="background: #8b5cf6;">AUTH</span>' : ''}
+                    </div>
+                    <div class="path">${endpoint.path}</div>
+                    <div class="description">${endpoint.description}</div>
+                    ${detailsHTML}
+                `;
+                
+                endpointsList.appendChild(endpointDiv);
+                
+                // Add toggle functionality for details
+                if (endpoint.details) {
+                    const toggleBtn = endpointDiv.querySelector('.toggle-details');
+                    const detailsDiv = endpointDiv.querySelector('.details');
+                    
+                    toggleBtn.addEventListener('click', () => {
+                        if (detailsDiv.style.display === 'none') {
+                            detailsDiv.style.display = 'block';
+                            toggleBtn.textContent = 'Hide Details';
+                        } else {
+                            detailsDiv.style.display = 'none';
+                            toggleBtn.textContent = 'Show Details';
+                        }
+                    });
+                }
+            });
+            
+            apiContainer.appendChild(categoryDiv);
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const noResults = document.getElementById('noResults');
+        const allEndpoints = document.querySelectorAll('.endpoint');
+        const allCategories = document.querySelectorAll('.category');
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+            
+            if (searchTerm === '') {
+                // Show all
+                allEndpoints.forEach(ep => ep.style.display = 'block');
+                allCategories.forEach(cat => cat.style.display = 'block');
+                noResults.style.display = 'none';
+                return;
+            }
+            
+            allEndpoints.forEach(endpoint => {
+                const category = endpoint.dataset.category.toLowerCase();
+                const method = endpoint.dataset.method.toLowerCase();
+                const path = endpoint.dataset.path.toLowerCase();
+                const description = endpoint.dataset.description.toLowerCase();
+                
+                if (category.includes(searchTerm) || 
+                    method.includes(searchTerm) || 
+                    path.includes(searchTerm) || 
+                    description.includes(searchTerm)) {
+                    endpoint.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    endpoint.style.display = 'none';
+                }
+            });
+            
+            // Show/hide categories based on visible endpoints
+            allCategories.forEach(category => {
+                const categoryEndpoints = category.querySelectorAll('.endpoint');
+                const visibleEndpoints = Array.from(categoryEndpoints).filter(ep => ep.style.display !== 'none');
+                
+                if (visibleEndpoints.length > 0) {
+                    category.style.display = 'block';
+                } else {
+                    category.style.display = 'none';
+                }
+            });
+            
+            // Show no results message if needed
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+        });
+
+        // Highlight search terms
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.trim();
+            if (searchTerm.length < 2) return;
+            
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            
+            allEndpoints.forEach(endpoint => {
+                const pathElement = endpoint.querySelector('.path');
+                const descElement = endpoint.querySelector('.description');
+                
+                if (pathElement) {
+                    pathElement.innerHTML = pathElement.textContent.replace(regex, '<mark>$1</mark>');
+                }
+                
+                if (descElement) {
+                    descElement.innerHTML = descElement.textContent.replace(regex, '<mark>$1</mark>');
+                }
+            });
+        });
+
+        // Clear highlighting when search is cleared
+        searchInput.addEventListener('search', function() {
+            if (this.value === '') {
+                allEndpoints.forEach(endpoint => {
+                    const pathElement = endpoint.querySelector('.path');
+                    const descElement = endpoint.querySelector('.description');
+                    
+                    if (pathElement) {
+                        pathElement.innerHTML = pathElement.textContent;
+                    }
+                    
+                    if (descElement) {
+                        descElement.innerHTML = descElement.textContent;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

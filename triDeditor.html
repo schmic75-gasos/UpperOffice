@@ -331,6 +331,9 @@
     </style>
 </head>
 <body>
+    <div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
     <div class="container">
         <header class="header">
             <a href="index.html" class="logo">UPPER OFFICE</a>
@@ -359,22 +362,22 @@
 
             <div id="canvas-container">
                 <div class="info-overlay">
-                    <div><strong>Ovládání:</strong></div>
-                    <div>Myš: Otáčení kamery</div>
-                    <div>Pravé tlačítko: Posouvání</div>
-                    <div>Kolečko: Přiblížení</div>
-                    <div>V/G/R/S/K: Nástroje</div>
+                    <div><strong>Controls:</strong></div>
+                    <div>Mouse: Rotation camera</div>
+                    <div>Right button: scrolling</div>
+                    <div>Mouse wheel: Zoom</div>
+                    <div>V/G/R/S/K: Tools</div>
                 </div>
             </div>
 
             <div class="sidebar">
                 <div class="add-object-section">
                     <h3>Přidat objekt</h3>
-                    <button class="add-btn" data-type="cube">+ Kostka</button>
-                    <button class="add-btn" data-type="sphere">+ Koule</button>
+                    <button class="add-btn" data-type="cube">+ Cube</button>
+                    <button class="add-btn" data-type="sphere">+ Sphere</button>
                     <button class="add-btn" data-type="cylinder">+ Válec</button>
-                    <button class="add-btn" data-type="torus">+ Prstenec</button>
-                    <button class="add-btn" data-type="cone">+ Kužel</button>
+                    <button class="add-btn" data-type="torus">+ Thorus</button>
+                    <button class="add-btn" data-type="cone">+ Cone</button>
                     <button class="add-btn" data-type="text">+ 3D Text</button>
                     <button class="add-btn" id="import-obj-btn">+ Import OBJ</button>
                     <input type="file" id="obj-file-input" accept=".obj" />
@@ -400,17 +403,17 @@
                     <div class="property-group">
                         <label>Režim:</label>
                         <select id="brush-mode">
-                            <option value="push">Zatlačovat (Push)</option>
-                            <option value="pull">Vytahovat (Pull)</option>
-                            <option value="flatten">Zploštit (Flatten)</option>
-                            <option value="smooth">Zaoblit (Smooth)</option>
+                            <option value="push">Push</option>
+                            <option value="pull"> Pull</option>
+                            <option value="flatten"> Flatten</option>
+                            <option value="smooth">Smooth</option>
                         </select>
                     </div>
                 </div>
 
                 <div id="subdivide-section"> {/* NEW SECTION */}
                     <h3>Vylepšení</h3>
-                    <button id="subdivide-btn">Rozdělit povrch</button>
+                    <button id="subdivide-btn">Divide the surface</button>
                 </div>
 
                 <div class="object-list">
@@ -421,7 +424,7 @@
                 <div class="properties">
                     <h3>Vlastnosti</h3>
                     <div id="properties-panel">
-                        <p style="color: #666;">Vyberte objekt pro úpravu</p>
+                        <p style="color: #666;">Select an object to edit</p>
                     </div>
                 </div>
             </div>

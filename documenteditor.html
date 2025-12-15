@@ -1,188 +1,7 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Dokumentový editor</title>
-<link rel="stylesheet" href="untiteld-1.CSS">
-<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background: #f4f4f4;
-  }
-  header {
-    background: #333;
-    color: white;
-    padding: 10px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-  button, select, input[type="color"], input[type="number"] {
-    padding: 6px 10px;
-    cursor: pointer;
-    border: none;
-    border-radius: 4px;
-    background: #fff;
-    color: #000;
-  }
-  button:hover { background: #eaeaea; }
-  label.small { color: #fff; font-size: 13px; margin-left:6px; }
-  #editor { margin: 10px; min-height: 500px; display: block; }
-  .page {
-    border: 1px solid #ccc;
-    background: white;
-    margin-bottom: 10px;
-    position: relative;
-    overflow: hidden;
-    padding: 12px;
-    box-sizing: border-box;
-    width: 21cm;
-    height: 29.7cm;
-  }
-  .control-group { display:flex; gap:6px; align-items:center; }
-  .tiny { width: 90px; padding:6px; }
-  .loading-spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #3498db;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-right: 10px;
-}
+<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UpperOffice - document editor</title><link rel="stylesheet" href="untiteld-1.CSS"><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:0;background:#f4f4f4}header{background:#333;color:#fff;padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}button,input[type=color],input[type=number],select{padding:6px 10px;cursor:pointer;border:none;border-radius:4px;background:#fff;color:#000}button:hover{background:#eaeaea}label.small{color:#fff;font-size:13px;margin-left:6px}#editor{margin:10px;min-height:500px;display:block}.page{border:1px solid #ccc;background:#fff;margin-bottom:10px;position:relative;overflow:hidden;padding:12px;box-sizing:border-box;width:21cm;height:29.7cm;color:#000}.control-group{display:flex;gap:6px;align-items:center}.tiny{width:90px;padding:6px}.loading-spinner{display:inline-block;width:20px;height:20px;border:3px solid #f3f3f3;border-top:3px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin-right:10px}@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}.conversion-notice{background:#e3f2fd;border:1px solid #2196f3;border-radius:8px;padding:16px;margin:16px 0;font-size:14px;color:#1976d2}.conversion-notice.success{background:#e8f5e8;border-color:#4caf50;color:#2e7d32}.conversion-notice.warning{background:#fff3cd;border-color:#ffc107;color:#856404}</style></head><body><div class="gtranslate_wrapper"></div>
+<script>window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"wrapper_selector":".gtranslate_wrapper"}</script>
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script><header><a href="index.html" class="logo">UPPER OFFICE</a><div class="navigation"><nav><li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li><li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li><li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li><li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li><li class="nav-item"><a href="cloud.html" class="nav-link">Cloud Storage</a></li><li class="nav-item login-container"><a href="Login.html" class="nav-link login-link">👨‍🚒</a><div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div></li></nav></div></header><br><header><div class="control-group"><button id="btnBold"><b>B</b></button><button id="btnItalic"><i>I</i></button><button id="btnUnderline"><u>U</u></button></div><select id="fontName"><option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option><option value="Courier New">Courier New</option><option value="Verdana">Verdana</option></select><select id="fontSize"><option value="1">8px</option><option value="2">10px</option><option value="3" selected="selected">12px</option><option value="4">14px</option><option value="5">18px</option><option value="6">24px</option><option value="7">36px</option></select><input type="color" id="colorPicker"><div class="control-group"><button id="left">Left</button><button id="center">Center</button><button id="right">Right</button></div><div class="control-group"><button id="ul">• List</button><button id="ol">1. List</button></div><button id="toggleDir">LTR / RTL</button><button id="saveDoc">Export .DOC</button><button id="saveToCloud">💾 Save to Cloud</button><button id="loadFromCloud">☁️ Load from Cloud</button><label class="small">Šířka (cm):</label><input type="number" id="widthInput" class="tiny" min="1" step="0.1" value="21"><button id="setWidth" class="tiny">Nastavit šířku</button><label class="small">Výška (cm):</label><input type="number" id="heightInput" class="tiny" min="1" step="0.1" value="29.7"><button id="setHeight" class="tiny">Nastavit výšku</button><label class="small">Zleva (cm):</label><input type="number" id="indentLeft" class="tiny" min="0" step="0.1" value="0"><button id="setIndentLeft" class="tiny">Nastavit</button><label class="small">Zprava (cm):</label><input type="number" id="indentRight" class="tiny" min="0" step="0.1" value="0"><button id="setIndentRight" class="tiny">Nastavit</button><label class="small">Shora (cm):</label><input type="number" id="indentTop" class="tiny" min="0" step="0.1" value="0"><button id="setIndentTop" class="tiny">Nastavit</button><label class="small">Zdola (cm):</label><input type="number" id="indentBottom" class="tiny" min="0" step="0.1" value="0"><button id="setIndentBottom" class="tiny">Nastavit</button><span id="currentDim" class="small" style="margin-left:10px"></span></header><div id="editor"><div class="page" contenteditable="true"><div><br></div></div></div><script>const editor = document.getElementById('editor');
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.conversion-notice {
-    background: #e3f2fd;
-    border: 1px solid #2196f3;
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-    font-size: 14px;
-    color: #1976d2;
-}
-
-.conversion-notice.success {
-    background: #e8f5e8;
-    border-color: #4caf50;
-    color: #2e7d32;
-}
-
-.conversion-notice.warning {
-    background: #fff3cd;
-    border-color: #ffc107;
-    color: #856404;
-}
-</style>
-</head>
-<body>
-<header>
-        <a href="index.html" class="logo">UPPER OFFICE</a>
-        <div class="navigation">
-            <nav>
-                <li class="nav-item"><a href="Your_projects.html" class="nav-link">Your Projects</a></li>
-                <li class="nav-item"><a href="Users_projects.html" class="nav-link">Users Projects</a></li>
-                <li class="nav-item"><a href="User_guide.html" class="nav-link">User Guide</a></li>
-                <li class="nav-item"><a href="Suport_us.html" class="nav-link">Support Us</a></li>
-                <li class="nav-item"><a href="cloud.html" class="nav-link">Cloud Storage</a></li>
-                <li class="nav-item login-container">
-                    <a href="Login.html" class="nav-link login-link">👨‍🚒</a>
-                    <div class="login-tooltip">Login is not required, but if you want to save your work you'll need an account</div>
-                </li>
-            </nav>
-        </div>
-    </header><br>
-<header>
-  <!-- Původní hlavička a ovládací prvky -->
-  <div class="control-group">
-    <button id="btnBold"><b>B</b></button>
-    <button id="btnItalic"><i>I</i></button>
-    <button id="btnUnderline"><u>U</u></button>
-  </div>
-
-  <select id="fontName">
-    <option value="Arial">Arial</option>
-    <option value="Times New Roman">Times New Roman</option>
-    <option value="Courier New">Courier New</option>
-    <option value="Verdana">Verdana</option>
-  </select>
-
-  <select id="fontSize">
-    <option value="1">8px</option>
-    <option value="2">10px</option>
-    <option value="3" selected>12px</option>
-    <option value="4">14px</option>
-    <option value="5">18px</option>
-    <option value="6">24px</option>
-    <option value="7">36px</option>
-  </select>
-
-  <input type="color" id="colorPicker" />
-
-  <div class="control-group">
-    <button id="left">Left</button>
-    <button id="center">Center</button>
-    <button id="right">Right</button>
-  </div>
-
-  <div class="control-group">
-    <button id="ul">• List</button>
-    <button id="ol">1. List</button>
-  </div>
-
-  <button id="toggleDir">LTR / RTL</button>
-
-  <button id="saveDoc">Export .DOC</button>
-
-  <button id="saveToCloud">💾 Save to Cloud</button>
-
-  <button id="loadFromCloud">☁️ Load from Cloud</button>
-
-  <label class="small">Šířka (cm):</label>
-  <input type="number" id="widthInput" class="tiny" min="1" step="0.1" value="21">
-  <button id="setWidth" class="tiny">Nastavit šířku</button>
-
-  <label class="small">Výška (cm):</label>
-  <input type="number" id="heightInput" class="tiny" min="1" step="0.1" value="29.7">
-  <button id="setHeight" class="tiny">Nastavit výšku</button>
-
-  <label class="small">Zleva (cm):</label>
-  <input type="number" id="indentLeft" class="tiny" min="0" step="0.1" value="0">
-  <button id="setIndentLeft" class="tiny">Nastavit</button>
-
-  <label class="small">Zprava (cm):</label>
-  <input type="number" id="indentRight" class="tiny" min="0" step="0.1" value="0">
-  <button id="setIndentRight" class="tiny">Nastavit</button>
-
-  <label class="small">Shora (cm):</label>
-  <input type="number" id="indentTop" class="tiny" min="0" step="0.1" value="0">
-  <button id="setIndentTop" class="tiny">Nastavit</button>
-
-  <label class="small">Zdola (cm):</label>
-  <input type="number" id="indentBottom" class="tiny" min="0" step="0.1" value="0">
-  <button id="setIndentBottom" class="tiny">Nastavit</button>
-
-  <span id="currentDim" class="small" style="margin-left:10px;"></span>
-</header>
-
-<div id="editor">
-  <div class="page" contenteditable="true"><div><br></div></div>
-</div>
-
-<script>
-const editor = document.getElementById('editor');
-
-// Základní formátování
 function exec(cmd, val = null) { document.execCommand(cmd, false, val); }
 
 document.getElementById('btnBold').addEventListener('click', ()=> exec('bold'));
@@ -200,15 +19,14 @@ document.getElementById('right').addEventListener('click', ()=> exec('justifyRig
 document.getElementById('ul').addEventListener('click', ()=> exec('insertUnorderedList'));
 document.getElementById('ol').addEventListener('click', ()=> exec('insertOrderedList'));
 
-// toggle direction
 document.getElementById('toggleDir').addEventListener('click', function(){
   const activePage = document.activeElement.closest('.page');
   if(activePage) activePage.dir = activePage.dir === 'ltr' ? 'rtl' : 'ltr';
 });
 
 document.getElementById('saveDoc').addEventListener('click', function(){
-  const widthCm = document.getElementById('widthInput').value;   // v cm
-  const heightCm = document.getElementById('heightInput').value; // v cm
+  const widthCm = document.getElementById('widthInput').value;   // in cm
+  const heightCm = document.getElementById('heightInput').value; // in cm
 
   // 1 cm = 28.3464567 pt
   const cmToPt = cm => cm * 28.3464567;
@@ -263,7 +81,6 @@ function updateCurrentDim(){
 updateCurrentDim();
 window.addEventListener('resize', updateCurrentDim);
 
-// Přidávání nové stránky při dosažení konce
 function addNewPage(){
   const lastPage = editor.lastElementChild;
   const newPage = lastPage.cloneNode(true);
@@ -284,7 +101,6 @@ function placeCaretAtEnd(el){
   }
 }
 
-// Sledování obsahu poslední stránky
 editor.addEventListener('input', ()=>{
   const lastPage = editor.lastElementChild;
   if(lastPage.scrollHeight > lastPage.clientHeight){
@@ -292,14 +108,11 @@ editor.addEventListener('input', ()=>{
   }
 });
 
-
-
 document.getElementById('saveDoc').addEventListener('click', function() {
     const pages = document.querySelectorAll('.page');
     let content = '';
     pages.forEach(p => {
         const style = getComputedStyle(p);
-        // inline styly pro zachování formátu
         const inlineStyle = `
             width: ${style.width};
             height: ${style.height};
@@ -326,23 +139,16 @@ document.getElementById('saveDoc').addEventListener('click', function() {
     link.href = URL.createObjectURL(blob);
     link.download = 'dokument.doc';
     link.click();
-});
-
-</script>
-<script>
-  // Cloud functionality
+});</script><script>
 document.getElementById('saveToCloud').addEventListener('click', function() {
     if (!localStorage.token) {
         alert('Please login to save to cloud');
         return;
     }
 
-    // Convert document to Blob
     const content = editor.innerHTML;
     const blob = new Blob([content], { type: 'application/msword' });
     const file = new File([blob], 'document.doc', { type: 'application/msword' });
-
-    // Upload to cloud
     uploadToCloud(file);
 });
 
@@ -369,10 +175,7 @@ async function uploadToCloud(file) {
     } catch (error) {
         alert('Error uploading file: ' + error.message);
     }
-}
-</script>
-<script>
-  // Cloud import functionality
+}</script><script>
 document.getElementById('loadFromCloud').addEventListener('click', openCloudModal);
 
 function openCloudModal() {
@@ -381,7 +184,6 @@ function openCloudModal() {
         return;
     }
 
-    // Create modal
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed;
@@ -521,7 +323,6 @@ async function loadDocumentFromCloud(fileId) {
     statusEl.textContent = 'Converting document...';
     
     try {
-        // First try to get converted HTML
         const convertResponse = await fetch(`/api/cloud/convert/${fileId}`, {
             headers: {
                 'Authorization': localStorage.token
@@ -532,14 +333,10 @@ async function loadDocumentFromCloud(fileId) {
             const result = await convertResponse.json();
             
             if (result.html) {
-                // Load converted HTML into editor
                 const firstPage = document.querySelector('.page');
                 if (firstPage) {
-                    // Clear existing content but keep the basic structure
                     firstPage.innerHTML = '<div>' + result.html + '</div>';
                     statusEl.textContent = 'Document loaded successfully!';
-                    
-                    // Show conversion method info
                     setTimeout(() => {
                         alert(`Document converted using ${result.method || 'auto-conversion'}. Some formatting may differ from the original.`);
                     }, 500);
@@ -547,8 +344,6 @@ async function loadDocumentFromCloud(fileId) {
                 return;
             }
         }
-
-        // Fallback: download original file
         const downloadResponse = await fetch(`/api/cloud/download/${fileId}`, {
             headers: {
                 'Authorization': localStorage.token
@@ -559,10 +354,8 @@ async function loadDocumentFromCloud(fileId) {
             const blob = await downloadResponse.blob();
             
             if (blob.type.includes('word') || blob.type.includes('document')) {
-                // Try direct conversion
                 await convertAndLoadDocFile(blob, fileId);
             } else {
-                // For HTML files, load directly
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const firstPage = document.querySelector('.page');
@@ -627,8 +420,7 @@ async function convertAndLoadDocFile(blob, fileId) {
         }
     } catch (error) {
         console.error('Conversion error:', error);
-        
-        // Ultimate fallback - show informative message
+     
         const firstPage = document.querySelector('.page');
         if (firstPage) {
             firstPage.innerHTML = `
@@ -647,15 +439,10 @@ async function convertAndLoadDocFile(blob, fileId) {
             `;
         }
     }
-}
-</script>
-<script>
-  // Check for cloud file in URL parameters
+}</script><script>// Check for cloud file in URL parameters
 const urlParams = new URLSearchParams(window.location.search);
 const cloudFileId = urlParams.get('cloudFile');
 if (cloudFileId && localStorage.token) {
     loadDocumentFromCloud(cloudFileId);
 }
-</script>
-</body>
-</html>
+</script></body></html>

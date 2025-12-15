@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, send_file, Response, abort
+from flask import Flask, request, jsonify, send_from_directory, send_file, Response, abort, url_for, session, redirect
 import sqlite3
 import bcrypt
 import secrets
@@ -12,6 +12,16 @@ import requests
 import time
 import json
 from flask_socketio import SocketIO, emit, join_room, leave_room
+import math
+import random
+import statistics
+import google
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
+import pathlib
+from google.auth.transport.requests import Request
+import jwt
+
 
 app = Flask(__name__, static_folder="static")
 
@@ -20,7 +30,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 DB = "users.db"
 UPLOAD_FOLDER = "cloud_storage"
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM', 'upppt', 'json', 'stl', 'obj', 'gltf', 'glb', 'svg'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -32,6 +42,35 @@ CONVERTAPI_SECRET = "Sf9JecGzQNCmcQhGDUX29TY1y9F5Vrq1"  # Z ConvertAPI dashboard
 # Create upload directory if not exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+app.secret_key = "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"  # potřebné pro session
+
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Povolit HTTP při vývoji
+
+GOOGLE_CLIENT_ID = "212860242226-jahdhnflbbn47n22b8vk2i0avulnl6ei.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "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"
+
+flow = Flow.from_client_config(
+    {
+        "web": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "project_id": "UpperOffice",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uris": [
+                "https://upperoffice.site/auth/google/callback"
+            ]
+        }
+    },
+    scopes=[
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+    ]
+)
+
+
+
 def db():
     return sqlite3.connect(DB, timeout=10, check_same_thread=False)
 
@@ -40,19 +79,55 @@ def generate_token():
     return secrets.token_hex(32)
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {
+        'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'webm', 'WebM', 
+        'upppt', 'json', 'stl', 'obj', 'gltf', 'glb'  # PŘIDÁNO
+    }
 
 def get_user_id_from_token(token):
     if not token:
         return None
+    try:
+        con = db()
+        cur = con.cursor()
+        cur.execute("SELECT id FROM users WHERE token=?", (token,))
+        row = cur.fetchone()
+        con.close()
+        return row[0] if row else None
+    except Exception as e:
+        print(f"Error getting user from token: {e}")
+        return None
+
+def get_or_create_google_user(email):
     con = db()
     cur = con.cursor()
-    cur.execute("SELECT id FROM users WHERE token=?", (token,))
+
+    # Zkus najít existujícího uživatele
+    cur.execute("SELECT id FROM users WHERE username=?", (email,))
     row = cur.fetchone()
+
+    if row:
+        user_id = row[0]
+    else:
+        # Pokud neexistuje → vytvoříme nového bez hesla
+        cur.execute(
+            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+            (email, "GOOGLE_USER")
+        )
+
+        con.commit()
+
+        # Získáme ID nově vytvořeného účtu
+        cur.execute("SELECT id FROM users WHERE username=?", (email,))
+        row = cur.fetchone()
+        user_id = row[0]
+
     con.close()
-    return row[0] if row else None
+    return user_id
+
 
 # ----------- CLOUD STORAGE -----------
+
 @app.route("/api/cloud/upload", methods=["POST"])
 def cloud_upload():
     token = request.headers.get("Authorization")
@@ -69,40 +144,82 @@ def cloud_upload():
         return jsonify({"error": "No file selected"}), 400
     
     if file and allowed_file(file.filename):
-        # Generate unique filename
+        # Kontrola limitu před uploadem
+        file.seek(0, 2)  # Přesun na konec souboru
+        file_size = file.tell()
+        file.seek(0)  # Návrat na začátek
+        
+        storage_check = check_storage_limit(user_id, file_size)
+        if not storage_check["allowed"]:
+            return jsonify({
+                "error": "Storage limit exceeded",
+                "details": storage_check,
+                "message": f"You have used {storage_check['current_usage'] / (1024*1024):.2f} MB of {storage_check['max_storage'] / (1024*1024):.2f} MB available storage."
+            }), 400
+        
+        # Pokračování v původním kódu pro upload
         file_id = str(uuid.uuid4())
         original_filename = secure_filename(file.filename)
         file_extension = original_filename.rsplit('.', 1)[1].lower()
         stored_filename = f"{file_id}.{file_extension}"
         
-        # Create user directory if not exists
         user_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}")
         os.makedirs(user_dir, exist_ok=True)
         
         file_path = os.path.join(user_dir, stored_filename)
         file.save(file_path)
         
-        # Get file type
-        file_type = 'image' if file_extension in ['png', 'jpg', 'jpeg', 'gif', 'webm', 'WebM'] else 'document'
+        # Získání skutečné velikosti souboru
+        actual_file_size = os.path.getsize(file_path)
         
-        # Store file info in database
+        # Detekce typu souboru
+        if file_extension in ['png', 'jpg', 'jpeg', 'gif', 'webm', 'WebM']:
+            file_type = 'image'
+        elif file_extension in ['doc', 'docx', 'pdf']:
+            file_type = 'document'
+        elif file_extension in ['upppt', 'json']:
+            file_type = 'presentation'
+        elif file_extension in ['stl', 'obj', 'gltf', 'glb']:
+            file_type = '3d_model'
+        elif file_extension in ['svg']:
+            file_type = 'vector'
+        else:
+            file_type = 'other'
+        
+        # Uložení do databáze
         con = db()
         cur = con.cursor()
         cur.execute("""
             INSERT INTO cloud_files (user_id, original_filename, stored_filename, file_type, file_size, upload_date, public_token)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (user_id, original_filename, stored_filename, file_type, os.path.getsize(file_path), datetime.now(), None))
+        """, (user_id, original_filename, stored_filename, file_type, actual_file_size, datetime.now(), None))
+        con.commit()
+        file_id_db = cur.lastrowid
+        
+        # Aktualizace využití úložiště
+        update_storage_usage(user_id)
+        
+        # Záznam do historie
+        cur.execute("""
+            INSERT INTO storage_history (user_id, action, file_id, file_size)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, 'upload', file_id_db, actual_file_size))
         con.commit()
         con.close()
         
         return jsonify({
             "message": "File uploaded successfully",
-            "file_id": cur.lastrowid,
-            "filename": original_filename
+            "file_id": file_id_db,
+            "filename": original_filename,
+            "file_type": file_type,
+            "file_size": actual_file_size,
+            "storage_info": check_storage_limit(user_id)
         })
     
     return jsonify({"error": "Invalid file type"}), 400
 
+
+# Upravte endpoint cloud_files pro zahrnutí velikostí
 @app.route("/api/cloud/files", methods=["GET"])
 def cloud_files():
     token = request.headers.get("Authorization")
@@ -129,7 +246,7 @@ def cloud_files():
             "size": row[3],
             "upload_date": row[4],
             "is_public": row[5] is not None,
-            "public_token": row[5],  # PŘIDÁNO - toto chybělo!
+            "public_token": row[5],
             "public_url": f"/api/cloud/public/{row[5]}" if row[5] else None
         })
     
@@ -147,25 +264,40 @@ def cloud_delete_file(file_id):
     con = db()
     cur = con.cursor()
     
-    # Verify ownership
-    cur.execute("SELECT stored_filename FROM cloud_files WHERE id=? AND user_id=?", (file_id, user_id))
+    # Získání informací o souboru
+    cur.execute("SELECT stored_filename, file_size FROM cloud_files WHERE id=? AND user_id=?", (file_id, user_id))
     file_data = cur.fetchone()
     
     if not file_data:
         con.close()
         return jsonify({"error": "File not found"}), 404
     
-    # Delete file from filesystem
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}", file_data[0])
+    stored_filename, file_size = file_data
+    
+    # Smazání souboru z filesystemu
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}", stored_filename)
     if os.path.exists(file_path):
         os.remove(file_path)
     
-    # Delete from database
+    # Smazání z databáze
     cur.execute("DELETE FROM cloud_files WHERE id=?", (file_id,))
+    
+    # Záznam do historie
+    cur.execute("""
+        INSERT INTO storage_history (user_id, action, file_id, file_size)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, 'delete', file_id, -file_size))
+    
     con.commit()
     con.close()
     
-    return jsonify({"message": "File deleted successfully"})
+    # Aktualizace využití úložiště
+    update_storage_usage(user_id)
+    
+    return jsonify({
+        "message": "File deleted successfully",
+        "storage_info": check_storage_limit(user_id)
+    })
 
 @app.route("/api/cloud/files/<int:file_id>/share", methods=["POST"])
 def cloud_share_file(file_id):
@@ -1340,6 +1472,342 @@ def share_3d_project(project_id):
         "message": "Projekt je nyní veřejný",
         "public_url": f"/api/3d/projects/public/{public_token}"
     })
+# Přidejte nový endpoint pro získání informací o úložišti
+@app.route("/api/cloud/storage/info", methods=["GET"])
+def get_storage_info():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    storage_info = check_storage_limit(user_id)
+    
+    # Získání historie využití
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT 
+            strftime('%Y-%m', timestamp) as month,
+            SUM(CASE WHEN action = 'upload' THEN file_size ELSE 0 END) as uploads,
+            SUM(CASE WHEN action = 'delete' THEN file_size ELSE 0 END) as deletes,
+            COUNT(*) as actions
+        FROM storage_history 
+        WHERE user_id = ? 
+        GROUP BY strftime('%Y-%m', timestamp)
+        ORDER BY month DESC
+        LIMIT 6
+    """, (user_id,))
+    
+    history = cur.fetchall()
+    con.close()
+    
+    return jsonify({
+        "storage_info": storage_info,
+        "history": [
+            {
+                "month": row[0],
+                "uploads": row[1],
+                "deletes": row[2],
+                "actions": row[3]
+            } for row in history
+        ]
+    })
+
+# Přidejte endpoint pro získání detailů o velikosti souborů podle typu
+@app.route("/api/cloud/storage/breakdown", methods=["GET"])
+def get_storage_breakdown():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT 
+            file_type,
+            COUNT(*) as file_count,
+            SUM(file_size) as total_size,
+            AVG(file_size) as avg_size
+        FROM cloud_files 
+        WHERE user_id = ? 
+        GROUP BY file_type
+        ORDER BY total_size DESC
+    """, (user_id,))
+    
+    breakdown = cur.fetchall()
+    con.close()
+    
+    return jsonify({
+        "breakdown": [
+            {
+                "type": row[0],
+                "count": row[1],
+                "total_size": row[2],
+                "avg_size": row[3]
+            } for row in breakdown
+        ]
+    })
+
+
+# ----------- CALCULATOR ENDPOINTS -----------
+
+@app.route("/api/calc/python", methods=["POST"])
+def calc_python():
+    """Evaluate Python code safely for calculator"""
+    data = request.json
+    code = data.get("code", "")
+    
+    if not code:
+        return jsonify({"error": "No code provided"}), 400
+    
+    # Basic security: limit length and check for dangerous imports
+    if len(code) > 1000:
+        return jsonify({"error": "Code too long"}), 400
+    
+    # Blacklist dangerous operations
+    dangerous_patterns = [
+        "__import__", "import ", "from ", "exec", "eval", "compile",
+        "open", "file", "os.", "sys.", "subprocess", "shutil",
+        "rm ", "del ", "breakpoint", "globals", "locals"
+    ]
+    
+    for pattern in dangerous_patterns:
+        if pattern in code:
+            return jsonify({"error": f"Operation not allowed: {pattern}"}), 400
+    
+    try:
+        # Create restricted globals
+        safe_globals = {
+            "__builtins__": {
+                'abs': abs, 'round': round, 'min': min, 'max': max, 'sum': sum,
+                'int': int, 'float': float, 'str': str, 'bool': bool,
+                'len': len, 'range': range, 'list': list, 'tuple': tuple,
+                'dict': dict, 'set': set
+            },
+            'math': {
+                'sin': math.sin, 'cos': math.cos, 'tan': math.tan,
+                'asin': math.asin, 'acos': math.acos, 'atan': math.atan,
+                'atan2': math.atan2, 'sinh': math.sinh, 'cosh': math.cosh,
+                'tanh': math.tanh, 'log': math.log, 'log10': math.log10,
+                'log2': math.log2, 'exp': math.exp, 'sqrt': math.sqrt,
+                'pow': math.pow, 'pi': math.pi, 'e': math.e,
+                'ceil': math.ceil, 'floor': math.floor, 'trunc': math.trunc,
+                'degrees': math.degrees, 'radians': math.radians,
+                'factorial': math.factorial, 'gcd': math.gcd,
+                'hypot': math.hypot, 'isclose': math.isclose
+            },
+            'random': {
+                'random': random.random,
+                'randint': random.randint,
+                'uniform': random.uniform,
+                'choice': random.choice,
+                'shuffle': random.shuffle,
+                'sample': random.sample,
+                'seed': random.seed
+            },
+            'statistics': {
+                'mean': statistics.mean,
+                'median': statistics.median,
+                'mode': statistics.mode,
+                'stdev': statistics.stdev,
+                'variance': statistics.variance
+            }
+        }
+        
+        # Evaluate the code
+        result = eval(code, safe_globals, {})
+        
+        # Convert result to string
+        if result is None:
+            result_str = "None"
+        elif isinstance(result, (int, float)):
+            result_str = str(result)
+        elif isinstance(result, (list, tuple, dict, set)):
+            result_str = str(result)
+        else:
+            result_str = str(result)
+        
+        return jsonify({"result": result_str})
+        
+    except SyntaxError as e:
+        return jsonify({"error": f"Syntax error: {str(e)}"}), 400
+    except NameError as e:
+        return jsonify({"error": f"Name error: {str(e)}"}), 400
+    except TypeError as e:
+        return jsonify({"error": f"Type error: {str(e)}"}), 400
+    except ValueError as e:
+        return jsonify({"error": f"Value error: {str(e)}"}), 400
+    except ZeroDivisionError as e:
+        return jsonify({"error": "Division by zero"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Calculation error: {str(e)}"}), 400
+
+
+@app.route("/api/calc/history", methods=["GET"])
+def get_calc_history():
+    """Get calculator history for user"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    
+    # Create table if not exists
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS calculator_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            expression TEXT NOT NULL,
+            result TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+    
+    # Get user's history
+    cur.execute("""
+        SELECT expression, result, mode, timestamp 
+        FROM calculator_history 
+        WHERE user_id=? 
+        ORDER BY timestamp DESC 
+        LIMIT 50
+    """, (user_id,))
+    
+    history = []
+    for row in cur.fetchall():
+        history.append({
+            "expression": row[0],
+            "result": row[1],
+            "mode": row[2],
+            "timestamp": row[3]
+        })
+    
+    con.close()
+    return jsonify(history)
+
+# ----------- CHANGE PASSWORD -----------
+@app.route("/api/change-password", methods=["POST"])
+def change_password():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.json
+    old_password = data.get("old_password")
+    new_password = data.get("new_password")
+
+    if not old_password or not new_password:
+        return jsonify({"error": "Missing fields"}), 400
+
+    con = db()
+    cur = con.cursor()
+    
+    # Získání aktuálního hesla
+    cur.execute("SELECT password_hash FROM users WHERE id=?", (user_id,))
+    row = cur.fetchone()
+    
+    if not row:
+        con.close()
+        return jsonify({"error": "User not found"}), 404
+
+    stored_hash = row[0]
+    
+    # Kontrola, zda je uživatel přihlášen přes Google
+    if stored_hash == "GOOGLE_USER":
+        con.close()
+        return jsonify({"error": "Google users cannot change password via this method"}), 400
+    
+    # Kontrola starého hesla
+    if not bcrypt.checkpw(old_password.encode(), stored_hash.encode()):
+        con.close()
+        return jsonify({"error": "Current password is incorrect"}), 403
+
+    # Hashování nového hesla
+    new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    
+    # Aktualizace hesla v databázi
+    cur.execute("UPDATE users SET password_hash=? WHERE id=?", (new_hash, user_id))
+    con.commit()
+    con.close()
+
+    return jsonify({"message": "Password changed successfully"})
+
+# ----------- LOGOUT -----------
+@app.route("/api/logout", methods=["POST"])
+def logout():
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("UPDATE users SET token=NULL WHERE id=?", (user_id,))
+    con.commit()
+    con.close()
+
+    return jsonify({"message": "Logged out successfully"})
+
+
+@app.route("/api/calc/history", methods=["POST"])
+def save_calc_history():
+    """Save calculator history entry"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    expression = data.get("expression", "")
+    result = data.get("result", "")
+    mode = data.get("mode", "basic")
+    
+    if not expression or not result:
+        return jsonify({"error": "Missing data"}), 400
+    
+    con = db()
+    cur = con.cursor()
+    
+    cur.execute("""
+        INSERT INTO calculator_history (user_id, expression, result, mode)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, expression, result, mode))
+    
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "History saved"})
+
+
+@app.route("/api/calc/history/clear", methods=["POST"])
+def clear_calc_history():
+    """Clear calculator history for user"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    
+    cur.execute("DELETE FROM calculator_history WHERE user_id=?", (user_id,))
+    
+    con.commit()
+    con.close()
+    
+    return jsonify({"message": "History cleared"})
 
 @app.route("/api/3d/projects/<int:project_id>/unshare", methods=["POST"])
 def unshare_3d_project(project_id):
@@ -1404,6 +1872,189 @@ def handle_3d_operation(data):
         
     except Exception as e:
         print(f"Error in 3d_operation: {e}")
+
+# Přidejte funkci pro kontrolu úložiště
+def check_storage_limit(user_id, additional_size=0):
+    """Zkontroluje, zda uživatel nepřekračuje limit úložiště"""
+    con = db()
+    cur = con.cursor()
+    
+    # Získání aktuálního využití
+    cur.execute("""
+        SELECT COALESCE(SUM(file_size), 0) 
+        FROM cloud_files 
+        WHERE user_id=?
+    """, (user_id,))
+    
+    current_usage = cur.fetchone()[0] or 0
+    
+    # Získání limitu
+    cur.execute("""
+        SELECT max_storage_bytes 
+        FROM user_storage_limits 
+        WHERE user_id=?
+    """, (user_id,))
+    
+    limit_row = cur.fetchone()
+    if limit_row:
+        max_storage = limit_row[0]
+    else:
+        # Výchozí limit: 170,000,000 bytů (~162 MB)
+        max_storage = 170000000
+        cur.execute("""
+            INSERT OR REPLACE INTO user_storage_limits (user_id, max_storage_bytes)
+            VALUES (?, ?)
+        """, (user_id, max_storage))
+        con.commit()
+    
+    con.close()
+    
+    # Výpočet procenta využití
+    usage_percentage = (current_usage / max_storage) * 100 if max_storage > 0 else 0
+    
+    # Kontrola překročení limitu
+    if current_usage + additional_size > max_storage:
+        return {
+            "allowed": False,
+            "current_usage": current_usage,
+            "max_storage": max_storage,
+            "usage_percentage": usage_percentage,
+            "available": max_storage - current_usage
+        }
+    else:
+        return {
+            "allowed": True,
+            "current_usage": current_usage,
+            "max_storage": max_storage,
+            "usage_percentage": usage_percentage,
+            "available": max_storage - current_usage - additional_size
+        }
+
+def update_storage_usage(user_id):
+    """Aktualizuje záznam o využití úložiště"""
+    con = db()
+    cur = con.cursor()
+    
+    cur.execute("""
+        SELECT COALESCE(SUM(file_size), 0) 
+        FROM cloud_files 
+        WHERE user_id=?
+    """, (user_id,))
+    
+    current_usage = cur.fetchone()[0] or 0
+    
+    cur.execute("""
+        INSERT OR REPLACE INTO user_storage_limits 
+        (user_id, used_storage_bytes, last_updated)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+    """, (user_id, current_usage))
+    
+    con.commit()
+    con.close()
+
+# ----------- IMAGE PREVIEW ENDPOINTS -----------
+
+@app.route("/api/cloud/preview/<int:file_id>", methods=["GET"])
+def cloud_get_preview(file_id):
+    """Endpoint pro získání náhledu obrázku"""
+    token = request.headers.get("Authorization")
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    con = db()
+    cur = con.cursor()
+    cur.execute("SELECT user_id, stored_filename, original_filename, file_type FROM cloud_files WHERE id=? AND user_id=?", (file_id, user_id))
+    file_data = cur.fetchone()
+    con.close()
+    
+    if not file_data:
+        return jsonify({"error": "File not found"}), 404
+    
+    user_id, stored_filename, original_filename, file_type = file_data
+    
+    # Kontrola, zda je soubor obrázek
+    if file_type not in ['image', 'vector']:
+        return jsonify({"error": "File is not an image"}), 400
+    
+    user_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}")
+    file_path = os.path.join(user_dir, stored_filename)
+    
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+    
+    return send_file(file_path, as_attachment=False)
+
+@app.route("/api/cloud/preview/public/<token>", methods=["GET"])
+def cloud_get_public_preview(token):
+    """Endpoint pro získání veřejného náhledu obrázku"""
+    con = db()
+    cur = con.cursor()
+    cur.execute("SELECT user_id, stored_filename, original_filename, file_type FROM cloud_files WHERE public_token=?", (token,))
+    file_data = cur.fetchone()
+    con.close()
+    
+    if not file_data:
+        return jsonify({"error": "File not found"}), 404
+    
+    user_id, stored_filename, original_filename, file_type = file_data
+    
+    # Kontrola, zda je soubor obrázek
+    if file_type not in ['image', 'vector']:
+        return jsonify({"error": "File is not an image"}), 400
+    
+    user_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"user_{user_id}")
+    file_path = os.path.join(user_dir, stored_filename)
+    
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+    
+    return send_file(file_path, as_attachment=False)
+
+# ---- GOOGLE LOGIN ----
+@app.route("/auth/google")
+def auth_google():
+    flow.redirect_uri = "https://upperoffice.site/auth/google/callback"
+    authorization_url, state = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true"
+    )
+    session["state"] = state
+    return redirect(authorization_url)
+
+
+@app.route("/auth/google/callback")
+def auth_google_callback():
+    flow.redirect_uri = "https://upperoffice.site/auth/google/callback"
+    flow.fetch_token(authorization_response=request.url)
+
+    credentials = flow.credentials
+    google_token = credentials.id_token
+
+    user_info = id_token.verify_oauth2_token(
+        google_token,
+        Request(),
+        GOOGLE_CLIENT_ID
+    )
+
+    email = user_info["email"]
+    user_id = get_or_create_google_user(email)
+
+    token = generate_token()
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("UPDATE users SET token=? WHERE id=?", (token, user_id))
+    con.commit()
+    con.close()
+
+    return redirect(f"/google_redirect.html?token={token}")
+
+
+
+
+
 
 
 # ----------- STATIC FILES -----------
@@ -1490,8 +2141,31 @@ if __name__ == "__main__":
         FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS user_storage_limits (
+        user_id INTEGER PRIMARY KEY,
+        max_storage_bytes INTEGER DEFAULT 170000000, -- 162 MB v bytech
+        used_storage_bytes INTEGER DEFAULT 0,
+        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS storage_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        action TEXT NOT NULL, -- 'upload' nebo 'delete'
+        file_id INTEGER,
+        file_size INTEGER,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        FOREIGN KEY (file_id) REFERENCES cloud_files (id)
+    )
+    """)
+
 
     con.commit()
     con.close()
     
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=1234)

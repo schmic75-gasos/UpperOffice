@@ -813,9 +813,10 @@
         <h4>By <a href="/" style="color: var(--primary);">UPPEROffice</a></h4>
         <div class="header-controls">
             <div class="switch-group">
-                <button class="language-btn active" data-lang="en">EN</button>
-                <button class="language-btn" data-lang="cs">ČS</button>
+                <button class="language-btn active" data-lang="en">🇬🇧EN</button>
+                <button class="language-btn" data-lang="cs">🇨🇿ČS</button>
                 <button class="btn-icon" id="themeToggle">🌙</button>
+                <label>If you love retro-styled things, you can also use our <a href="pictureeditorretro.html">Retro-styled Image editor</a>.</label>
             </div>
             <button class="btn" id="downloadBtn">⬇ Download</button>
             <button class="btn" id="saveToCloudBtn">☁️ Save to Cloud</button>
@@ -870,7 +871,7 @@
                     <div class="upload-zone" id="uploadZone">
                         <div class="upload-zone-icon">📸</div>
                         <div class="upload-zone-text" data-text="upload.title">Click to upload or drag</div>
-                        <div class="upload-zone-subtext" data-text="upload.subtitle">PNG, JPG, GIF up to 10MB</div>
+                        <div class="upload-zone-subtext" data-text="upload.subtitle">PNG, JPG, GIF up to 10MB (go to Cloud storage managment page for more informations.)</div>
                     </div>
                 </div>
                 <div class="status-message" id="statusMessage"></div>
@@ -1829,10 +1830,11 @@
                             <div style="font-size: 10px; color: var(--text-muted);">${new Date(file.upload_date).toLocaleDateString()}</div>
                         `;
 
-                        fileCard.addEventListener('click', () => {
-                            loadImageFromCloud(file.id);
-                            document.body.removeChild(document.querySelector('.modal'));
+                       fileCard.addEventListener('click', () => {
+                        loadImageFromCloud(file.id, file.filename);
+                        document.body.removeChild(document.querySelector('.modal'));
                         });
+
 
                         fileCard.addEventListener('mouseenter', () => {
                             fileCard.style.borderColor = 'var(--primary)';
@@ -1854,7 +1856,7 @@
             }
         }
 
-        async function loadImageFromCloud(fileId) {
+        async function loadImageFromCloud(fileId, filename) {
             showStatus('Loading image from cloud...', 'success');
             
             try {
@@ -1898,9 +1900,10 @@
                         historyIndex = -1;
                         saveToHistory();
                         
-                        // Set current cloud file ID for sharing
                         currentCloudFileId = fileId;
-                        
+
+                        document.title = `Picture editor - ${filename}`;
+
                         showStatus('Image loaded from cloud!', 'success');
                     };
                     
