@@ -8,3 +8,5 @@ nohup.out
 __pycache__/
 *.pyc
 pyvenv.cfg
+*.fossil
+.fslckout
